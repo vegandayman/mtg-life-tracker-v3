@@ -104,8 +104,10 @@
 
   .life-controls {
     display: flex;
-    gap: clamp(12px, 4vw, 32px);
-    margin-top: 6px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 3vw, 24px);
     position: relative;
     z-index: 1;
   }
@@ -499,11 +501,6 @@ function buildUI() {
     nameEl.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); openNameModal(idx); });
     q.appendChild(nameEl);
 
-    const lifeEl = document.createElement('div');
-    lifeEl.className = 'life-total' + (p.life <= 5 && p.life > 0 ? ' low' : '') + (p.life <= 0 ? ' dead' : '');
-    lifeEl.textContent = p.life;
-    q.appendChild(lifeEl);
-
     const ctrls = document.createElement('div');
     ctrls.className = 'life-controls';
 
@@ -513,6 +510,10 @@ function buildUI() {
     minusBtn.addEventListener('click', e => { e.stopPropagation(); changeLife(idx, -1); });
     minusBtn.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); changeLife(idx, -1); });
 
+    const lifeEl = document.createElement('div');
+    lifeEl.className = 'life-total' + (p.life <= 5 && p.life > 0 ? ' low' : '') + (p.life <= 0 ? ' dead' : '');
+    lifeEl.textContent = p.life;
+
     const plusBtn = document.createElement('button');
     plusBtn.className = 'life-btn';
     plusBtn.textContent = '+';
@@ -520,6 +521,7 @@ function buildUI() {
     plusBtn.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); changeLife(idx, +1); });
 
     ctrls.appendChild(minusBtn);
+    ctrls.appendChild(lifeEl);
     ctrls.appendChild(plusBtn);
     q.appendChild(ctrls);
 
