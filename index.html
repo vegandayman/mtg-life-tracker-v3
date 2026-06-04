@@ -152,18 +152,21 @@
 
   .color-btn {
     position: absolute;
-    top: 8px; right: 8px;
-    width: 22px; height: 22px;
+    top: 14px; right: 14px;
+    width: clamp(32px, 7vw, 44px);
+    height: clamp(32px, 7vw, 44px);
     border-radius: 50%;
-    border: 2px solid rgba(201,168,76,0.4);
-    background: rgba(0,0,0,0.3);
+    border: 2px solid rgba(201,168,76,0.5);
+    background: rgba(0,0,0,0.45);
     cursor: pointer;
     z-index: 5;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px;
+    font-size: clamp(14px, 3vw, 20px);
     color: var(--gold-light);
     -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s, transform 0.08s;
   }
+  .color-btn:active { background: rgba(201,168,76,0.2); transform: scale(0.9); }
 
   #reset-btn, #history-btn {
     position: fixed;
@@ -324,6 +327,85 @@
   }
   .swatch:active, .swatch.selected { border-color: var(--gold-light); transform: scale(1.18); }
 
+  .rgb-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(201,168,76,0.15);
+  }
+  .rgb-section h3 {
+    font-size: clamp(10px, 2.2vw, 12px);
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .rgb-preview {
+    width: 100%;
+    height: clamp(28px, 6vw, 36px);
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.15);
+    margin-bottom: 10px;
+    transition: background 0.1s;
+  }
+  .rgb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .rgb-label {
+    font-size: clamp(10px, 2.2vw, 12px);
+    width: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .rgb-label.r { color: #ff6b6b; }
+  .rgb-label.g { color: #6bff8e; }
+  .rgb-label.b { color: #6bb5ff; }
+  .rgb-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .rgb-slider.r { background: linear-gradient(to right, #000, #ff0000); }
+  .rgb-slider.g { background: linear-gradient(to right, #000, #00ff00); }
+  .rgb-slider.b { background: linear-gradient(to right, #000, #0000ff); }
+  .rgb-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid rgba(0,0,0,0.4);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .rgb-val {
+    font-size: clamp(10px, 2vw, 12px);
+    color: var(--text-dim);
+    width: 26px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .btn-apply-rgb {
+    width: 100%;
+    padding: clamp(8px, 2vw, 11px);
+    border-radius: 8px;
+    border: 1px solid rgba(201,168,76,0.35);
+    background: rgba(201,168,76,0.12);
+    color: var(--gold-light);
+    font-family: 'Cinzel', serif;
+    font-size: clamp(10px, 2.2vw, 12px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.12s;
+  }
+  .btn-apply-rgb:active { background: rgba(201,168,76,0.25); }
+
   .modal p {
     text-align: center;
     color: var(--text-dim);
@@ -456,11 +538,13 @@ function load() {
 load();
 
 const PALETTE = [
-  '#1a3a2a','#2a1a3a','#3a2a1a','#1a2a3a',
-  '#3a1a1a','#1a2e1a','#2c1a0e','#0e1a2c',
-  '#2a2a0e','#0e2a2a','#3a3a1a','#1a1a3a',
-  '#4a2020','#204a20','#20204a','#4a3a10',
-  '#1c1c1c','#2e2e2e','#3e1a2e','#1e3e2e',
+  // Vibrant saturated
+  '#c0392b','#e74c3c','#e67e22','#f1c40f','#2ecc71',
+  '#1abc9c','#3498db','#9b59b6','#e91e8c','#ff6b35',
+  // Mid-tone
+  '#8e44ad','#2980b9','#16a085','#27ae60','#d35400',
+  // Dark atmospheric
+  '#1a3a2a','#2a1a3a','#3a2a1a','#1a2a3a','#1c1c1c',
 ];
 
 const app = document.getElementById('app');
@@ -613,7 +697,10 @@ function setupDrag() {
       const t = e.touches[0];
       drag.startX = t.clientX; drag.startY = t.clientY;
       drag.startIdx = idx;
+      drag.active = false;
       drag.triggered = false;
+      drag.targetIdx = -1;
+      clearTimeout(drag.longPressTimer);
       drag.longPressTimer = setTimeout(() => {
         drag.active = true;
         drag.triggered = true;
@@ -627,8 +714,10 @@ function setupDrag() {
       const t = e.touches[0];
       const dx = t.clientX - drag.startX;
       const dy = t.clientY - drag.startY;
+      // Cancel long press if finger moves significantly before timer fires
       if (!drag.triggered && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
         clearTimeout(drag.longPressTimer);
+        return;
       }
       if (!drag.active) return;
       e.preventDefault();
@@ -658,7 +747,10 @@ function setupDrag() {
     q.addEventListener('mousedown', e => {
       drag.startX = e.clientX; drag.startY = e.clientY;
       drag.startIdx = idx;
+      drag.active = false;
       drag.triggered = false;
+      drag.targetIdx = -1;
+      clearTimeout(drag.longPressTimer);
       drag.longPressTimer = setTimeout(() => {
         drag.active = true;
         drag.triggered = true;
@@ -726,7 +818,6 @@ function drawArrow() {
   ctx.strokeStyle = 'rgba(201,168,76,0.75)';
   ctx.lineWidth = 3;
   ctx.setLineDash([10, 6]);
-  ctx.lineDashOffset = -Date.now() / 30 % 16;
   ctx.shadowColor = 'rgba(201,168,76,0.5)';
   ctx.shadowBlur = 8;
   ctx.beginPath();
@@ -745,8 +836,6 @@ function drawArrow() {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
-
-  if (drag.active) requestAnimationFrame(drawArrow);
 }
 
 let currentModal = null;
@@ -846,22 +935,76 @@ function openColorModal(idx) {
   const bd = createBackdrop();
   const m = document.createElement('div');
   m.className = 'modal';
-  m.innerHTML = '<h2>Choose Colour</h2><div class="color-swatches" id="swatches"></div><div class="modal-btns"><button class="btn-cancel" id="col-cancel">Cancel</button></div>';
+  m.innerHTML =
+    '<h2>Choose Colour</h2>' +
+    '<div class="color-swatches" id="swatches"></div>' +
+    '<div class="rgb-section">' +
+      '<h3>Custom Colour</h3>' +
+      '<div class="rgb-preview" id="rgb-preview"></div>' +
+      '<div class="rgb-row"><span class="rgb-label r">R</span><input class="rgb-slider r" id="sl-r" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vr">100</span></div>' +
+      '<div class="rgb-row"><span class="rgb-label g">G</span><input class="rgb-slider g" id="sl-g" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vg">100</span></div>' +
+      '<div class="rgb-row"><span class="rgb-label b">B</span><input class="rgb-slider b" id="sl-b" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vb">100</span></div>' +
+      '<button class="btn-apply-rgb" id="apply-rgb">Apply Custom Colour</button>' +
+    '</div>' +
+    '<div class="modal-btns" style="margin-top:12px"><button class="btn-cancel" id="col-cancel">Cancel</button></div>';
   bd.appendChild(m);
 
+  // Swatches
   const sw = m.querySelector('#swatches');
   PALETTE.forEach(col => {
     const s = document.createElement('div');
     s.className = 'swatch' + (state.players[idx].color === col ? ' selected' : '');
     s.style.background = col;
-    const pick = () => {
-      state.players[idx].color = col;
-      quarters[idx].style.backgroundColor = col;
-      save(); closeModal();
-    };
+    const pick = () => { state.players[idx].color = col; quarters[idx].style.backgroundColor = col; save(); closeModal(); };
     s.addEventListener('click', pick);
     s.addEventListener('touchend', e => { e.preventDefault(); pick(); });
     sw.appendChild(s);
+  });
+
+  // RGB sliders
+  const slR = m.querySelector('#sl-r'), slG = m.querySelector('#sl-g'), slB = m.querySelector('#sl-b');
+  const vR  = m.querySelector('#vr'),  vG  = m.querySelector('#vg'),  vB  = m.querySelector('#vb');
+  const preview = m.querySelector('#rgb-preview');
+
+  // Seed sliders from current colour if possible
+  const cur = state.players[idx].color;
+  const hex = cur.replace('#','');
+  if (hex.length === 6) {
+    slR.value = parseInt(hex.slice(0,2),16);
+    slG.value = parseInt(hex.slice(2,4),16);
+    slB.value = parseInt(hex.slice(4,6),16);
+  }
+
+  function updatePreview() {
+    const r = slR.value, g = slG.value, b = slB.value;
+    vR.textContent = r; vG.textContent = g; vB.textContent = b;
+    preview.style.background = 'rgb('+r+','+g+','+b+')';
+  }
+  updatePreview();
+
+  [slR, slG, slB].forEach(sl => {
+    sl.addEventListener('input', updatePreview);
+    sl.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
+  });
+
+  m.querySelector('#apply-rgb').addEventListener('click', () => {
+    const r = parseInt(slR.value).toString(16).padStart(2,'0');
+    const g = parseInt(slG.value).toString(16).padStart(2,'0');
+    const b = parseInt(slB.value).toString(16).padStart(2,'0');
+    const col = '#' + r + g + b;
+    state.players[idx].color = col;
+    quarters[idx].style.backgroundColor = col;
+    save(); closeModal();
+  });
+  m.querySelector('#apply-rgb').addEventListener('touchend', e => {
+    e.preventDefault();
+    const r = parseInt(slR.value).toString(16).padStart(2,'0');
+    const g = parseInt(slG.value).toString(16).padStart(2,'0');
+    const b = parseInt(slB.value).toString(16).padStart(2,'0');
+    const col = '#' + r + g + b;
+    state.players[idx].color = col;
+    quarters[idx].style.backgroundColor = col;
+    save(); closeModal();
   });
 
   m.querySelector('#col-cancel').addEventListener('click', closeModal);
