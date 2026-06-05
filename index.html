@@ -132,6 +132,7 @@
     padding-bottom: 2px;
   }
   .life-btn:active { background: rgba(201,168,76,0.25); transform: scale(0.91); border-color: var(--gold-light); }
+  .life-btn.long-press { background: rgba(201,168,76,0.4); border-color: var(--gold-light); transform: scale(1.08); }
 
   .cmd-badges {
     display: flex;
@@ -447,7 +448,38 @@
   }
   .quarter.dead .eliminated-overlay { display: block; }
 
-  /* History modal */
+  .cmd-toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .cmd-toggle {
+    flex: 1;
+    padding: clamp(6px, 1.5vw, 9px);
+    border-radius: 6px;
+    border: 1px solid rgba(201,168,76,0.25);
+    background: rgba(0,0,0,0.3);
+    color: var(--text-dim);
+    font-family: 'Cinzel', serif;
+    font-size: clamp(10px, 2.2vw, 12px);
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cmd-toggle.active {
+    background: rgba(201,168,76,0.18);
+    color: var(--gold-light);
+    border-color: rgba(201,168,76,0.6);
+  }
+  .cmd-sofar {
+    text-align: center;
+    font-size: clamp(10px, 2.2vw, 12px);
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
   .history-list {
     list-style: none;
     margin: 4px 0 12px;
@@ -499,7 +531,7 @@ let state = {
     name: NAMES[i],
     life: START_LIFE,
     color: COLORS[i],
-    cmdDmg: [0,0,0,0],
+    cmdDmg: [[0,0],[0,0],[0,0],[0,0]], // [attacker][cmd 0 or 1]
   })),
   history: [],
   desktopMode: false,
@@ -553,6 +585,12 @@ function load() {
       state = JSON.parse(s);
       if (!state.history) state.history = [];
       if (state.desktopMode === undefined) state.desktopMode = false;
+      // Migrate old flat cmdDmg [0,0,0,0] to new 2D format [[0,0],...]
+      state.players.forEach(p => {
+        if (typeof p.cmdDmg[0] === 'number') {
+          p.cmdDmg = p.cmdDmg.map(v => [v, 0]);
+        }
+      });
     }
   } catch(e) {}
 }
@@ -574,6 +612,56 @@ const ctx = canvas.getContext('2d');
 const resetBtn = document.getElementById('reset-btn');
 
 const quarters = [];
+
+const LIFE_BTN_LONG_MS = 500;
+
+function addLifeBtnListeners(btn, idx, dir) {
+  let longTimer = null;
+  let didLong = false;
+
+  btn.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    didLong = false;
+    longTimer = setTimeout(() => {
+      didLong = true;
+      changeLife(idx, dir * 10);
+      btn.classList.add('long-press');
+    }, LIFE_BTN_LONG_MS);
+  }, { passive: true });
+
+  btn.addEventListener('touchend', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    clearTimeout(longTimer);
+    btn.classList.remove('long-press');
+    if (!didLong) changeLife(idx, dir);
+  });
+
+  btn.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    didLong = false;
+    longTimer = setTimeout(() => {
+      didLong = true;
+      changeLife(idx, dir * 10);
+      btn.classList.add('long-press');
+    }, LIFE_BTN_LONG_MS);
+  });
+
+  btn.addEventListener('mouseup', e => {
+    e.stopPropagation();
+    clearTimeout(longTimer);
+    btn.classList.remove('long-press');
+    if (!didLong) changeLife(idx, dir);
+  });
+
+  btn.addEventListener('mouseleave', () => {
+    clearTimeout(longTimer);
+    btn.classList.remove('long-press');
+    didLong = true; // prevent mouseup firing change after leave
+  });
+
+  btn.addEventListener('click', e => { e.stopPropagation(); }); // handled by mouseup
+}
 
 function buildUI() {
   app.innerHTML = '';
@@ -614,20 +702,16 @@ function buildUI() {
     const minusBtn = document.createElement('button');
     minusBtn.className = 'life-btn';
     minusBtn.textContent = '\u2212';
-    minusBtn.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    minusBtn.addEventListener('click', e => { e.stopPropagation(); changeLife(idx, -1); });
-    minusBtn.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); changeLife(idx, -1); });
+    addLifeBtnListeners(minusBtn, idx, -1);
 
     const lifeEl = document.createElement('div');
-    lifeEl.className = 'life-total' + (p.life <= 5 && p.life > 0 ? ' low' : '') + (p.life <= 0 ? ' dead' : '');
+    lifeEl.className = 'life-total' + (p.life <= 5 && p.life > 0 ? ' low' : '') + (isEliminated(idx) ? ' dead' : '');
     lifeEl.textContent = p.life;
 
     const plusBtn = document.createElement('button');
     plusBtn.className = 'life-btn';
     plusBtn.textContent = '+';
-    plusBtn.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    plusBtn.addEventListener('click', e => { e.stopPropagation(); changeLife(idx, +1); });
-    plusBtn.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); changeLife(idx, +1); });
+    addLifeBtnListeners(plusBtn, idx, +1);
 
     ctrls.appendChild(minusBtn);
     ctrls.appendChild(lifeEl);
@@ -651,15 +735,22 @@ function buildUI() {
   setupDrag();
 }
 
+function isEliminated(idx) {
+  const p = state.players[idx];
+  if (p.life <= 0) return true;
+  return p.cmdDmg.some(pair => pair[0] >= 21 || pair[1] >= 21);
+}
+
 function updateLife(idx) {
   const q = quarters[idx];
   const p = state.players[idx];
   const el = q.querySelector('.life-total');
   el.textContent = p.life;
+  const elim = isEliminated(idx);
   el.className = 'life-total' +
-    (p.life <= 5 && p.life > 0 ? ' low' : '') +
-    (p.life <= 0 ? ' dead' : '');
-  if (p.life <= 0) q.classList.add('dead');
+    (p.life <= 5 && p.life > 0 && !elim ? ' low' : '') +
+    (elim ? ' dead' : '');
+  if (elim) q.classList.add('dead');
   else q.classList.remove('dead');
   el.classList.remove('bump');
   void el.offsetWidth;
@@ -679,13 +770,16 @@ function updateAllBadges() {
     const badges = quarters[def].querySelector('.cmd-badges');
     badges.innerHTML = '';
     [0,1,2,3].forEach(atk => {
-      const dmg = state.players[def].cmdDmg[atk];
-      if (dmg > 0) {
-        const b = document.createElement('div');
-        b.className = 'cmd-badge' + (dmg >= 21 ? ' danger' : '');
-        b.textContent = '\u2694 ' + state.players[atk].name + ': ' + dmg;
-        badges.appendChild(b);
-      }
+      const pair = state.players[def].cmdDmg[atk];
+      [0,1].forEach(cmd => {
+        const dmg = pair[cmd];
+        if (dmg > 0) {
+          const b = document.createElement('div');
+          b.className = 'cmd-badge' + (dmg >= 21 ? ' danger' : '');
+          b.textContent = '\u2694 ' + state.players[atk].name + ' C' + (cmd+1) + ': ' + dmg;
+          badges.appendChild(b);
+        }
+      });
     });
   });
 }
@@ -882,18 +976,22 @@ function openCmdModal(atkIdx, defIdx) {
   const atk = state.players[atkIdx];
   const def = state.players[defIdx];
   let val = 0;
+  let cmdSlot = 0; // 0 = Commander 1, 1 = Commander 2
 
   const bd = createBackdrop();
   const m = document.createElement('div');
   m.className = 'modal';
   m.innerHTML =
     '<h2>Commander Damage</h2>' +
-    '<p style="text-align:center;margin-bottom:6px;font-size:clamp(12px,3vw,15px);letter-spacing:0.08em;">' +
+    '<p style="text-align:center;margin-bottom:10px;font-size:clamp(12px,3vw,15px);letter-spacing:0.08em;">' +
     '<span class="attacker">' + atk.name + '</span>' +
     '<span style="color:var(--gold);margin:0 8px;">\u2694</span>' +
     '<span class="defender">' + def.name + '</span></p>' +
-    '<p style="text-align:center;font-size:clamp(10px,2.2vw,12px);color:var(--text-dim);margin-bottom:4px;">' +
-    '(Total dealt so far: ' + def.cmdDmg[atkIdx] + ')</p>' +
+    '<div class="cmd-toggle-row">' +
+    '<button class="cmd-toggle active" id="cmd-c1">Commander 1</button>' +
+    '<button class="cmd-toggle" id="cmd-c2">Commander 2</button>' +
+    '</div>' +
+    '<p class="cmd-sofar" id="cmd-sofar"></p>' +
     '<div class="cmd-counter">' +
     '<button class="cmd-btn" id="cmd-minus">\u2212</button>' +
     '<div class="cmd-val" id="cmd-val">0</div>' +
@@ -905,7 +1003,32 @@ function openCmdModal(atkIdx, defIdx) {
     '</div>';
   bd.appendChild(m);
 
-  const valEl = m.querySelector('#cmd-val');
+  const valEl    = m.querySelector('#cmd-val');
+  const sofarEl  = m.querySelector('#cmd-sofar');
+
+  function updateSofar() {
+    const total = def.cmdDmg[atkIdx][cmdSlot];
+    sofarEl.textContent = 'C' + (cmdSlot+1) + ' total so far: ' + total;
+  }
+  updateSofar();
+
+  const c1btn = m.querySelector('#cmd-c1');
+  const c2btn = m.querySelector('#cmd-c2');
+
+  function selectSlot(slot) {
+    cmdSlot = slot;
+    val = 0;
+    valEl.textContent = 0;
+    c1btn.classList.toggle('active', slot === 0);
+    c2btn.classList.toggle('active', slot === 1);
+    updateSofar();
+  }
+
+  c1btn.addEventListener('click', () => selectSlot(0));
+  c2btn.addEventListener('click', () => selectSlot(1));
+  c1btn.addEventListener('touchend', e => { e.preventDefault(); selectSlot(0); });
+  c2btn.addEventListener('touchend', e => { e.preventDefault(); selectSlot(1); });
+
   m.querySelector('#cmd-minus').addEventListener('click', () => { if (val > 0) { val--; valEl.textContent = val; } });
   m.querySelector('#cmd-plus').addEventListener('click', () => { val++; valEl.textContent = val; });
   m.querySelector('#cmd-minus').addEventListener('touchend', e => { e.preventDefault(); if (val > 0) { val--; valEl.textContent = val; } });
@@ -916,8 +1039,9 @@ function openCmdModal(atkIdx, defIdx) {
   const confirm = () => {
     if (val > 0) {
       state.players[defIdx].life -= val;
-      state.players[defIdx].cmdDmg[atkIdx] += val;
-      addHistory({ type: 'cmd', attacker: atkIdx, defender: defIdx, amount: val, totalNow: state.players[defIdx].cmdDmg[atkIdx] });
+      state.players[defIdx].cmdDmg[atkIdx][cmdSlot] += val;
+      const totalNow = state.players[defIdx].cmdDmg[atkIdx][cmdSlot];
+      addHistory({ type: 'cmd', attacker: atkIdx, defender: defIdx, cmdSlot, amount: val, totalNow });
       updateLife(defIdx);
       updateAllBadges();
       save();
@@ -1092,9 +1216,10 @@ function openHistoryModal() {
       } else if (h.type === 'cmd') {
         const atk = state.players[h.attacker].name;
         const def = state.players[h.defender].name;
+        const cLabel = h.cmdSlot === 1 ? ' C2' : ' C1';
         rows += '<li>' +
           '<span class="hist-icon">\u2694</span>' +
-          '<span class="hist-text"><b>' + atk + '</b> \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(cmd total: ' + h.totalNow + ')</span></span>' +
+          '<span class="hist-text"><b>' + atk + cLabel + '</b> \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(cmd total: ' + h.totalNow + ')</span></span>' +
           '<span class="hist-time">' + time + '</span></li>';
       }
     });
@@ -1131,7 +1256,7 @@ function openResetModal() {
 }
 
 function doReset() {
-  state.players.forEach(p => { p.life = START_LIFE; p.cmdDmg = [0,0,0,0]; });
+  state.players.forEach(p => { p.life = START_LIFE; p.cmdDmg = [[0,0],[0,0],[0,0],[0,0]]; });
   state.history = [];
   save(); buildUI();
 }
