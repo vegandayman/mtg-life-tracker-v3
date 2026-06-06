@@ -157,7 +157,6 @@
 
   .color-btn {
     position: absolute;
-    top: 14px; right: 14px;
     width: clamp(32px, 7vw, 44px);
     height: clamp(32px, 7vw, 44px);
     border-radius: 50%;
@@ -172,6 +171,53 @@
     transition: background 0.12s, transform 0.08s;
   }
   .color-btn:active { background: rgba(201,168,76,0.2); transform: scale(0.9); }
+  /* Players 0 & 3: colour btn top-left, ping btn top-right */
+  .color-btn.tl { top: 14px; left: 14px; }
+  /* Players 1 & 2: colour btn top-right, ping btn top-left */
+  .color-btn.tr { top: 14px; right: 14px; }
+
+  /* Ping buttons - fixed around the reset button cluster, one per quadrant */
+  .ping-btn {
+    position: fixed;
+    z-index: 20;
+    width: clamp(28px, 6vw, 38px);
+    height: clamp(28px, 6vw, 38px);
+    border-radius: 50%;
+    border: 2px solid rgba(100,180,255,0.4);
+    background: rgba(10,10,10,0.9);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(7px, 1.6vw, 10px);
+    letter-spacing: -1px;
+    color: rgba(120,200,255,0.9);
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 8px rgba(100,180,255,0.15);
+    transition: background 0.12s, transform 0.1s, border-color 0.12s;
+    overflow: hidden;
+  }
+  /* Diagonal offsets from centre - one per quadrant */
+  .ping-btn.q0 { /* top-left quadrant  → sits up-left of reset */
+    top:  calc(50% - clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 + 2px);
+    left: calc(50% - clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 + 2px);
+  }
+  .ping-btn.q1 { /* top-right quadrant → sits up-right of reset */
+    top:  calc(50% - clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 + 2px);
+    left: calc(50% + clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 - 2px);
+  }
+  .ping-btn.q2 { /* bottom-left quadrant → sits down-left of reset */
+    top:  calc(50% + clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 - 2px);
+    left: calc(50% - clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 + 2px);
+  }
+  .ping-btn.q3 { /* bottom-right quadrant → sits down-right of reset */
+    top:  calc(50% + clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 - 2px);
+    left: calc(50% + clamp(30px,7vw,44px) - clamp(28px,6vw,38px) / 2 - 2px);
+  }
+  .ping-btn:active { background: rgba(20,40,60,0.95); transform: scale(0.9); border-color: rgba(100,180,255,0.9); }
+  .ping-btn.flash { animation: pingFlash 0.3s ease-out; }
+  @keyframes pingFlash {
+    0%   { background: rgba(100,180,255,0.4); transform: scale(1.15); }
+    100% { background: rgba(10,10,10,0.9);    transform: scale(1); }
+  }
 
   #reset-btn, #history-btn, #mode-btn {
     position: fixed;
@@ -439,14 +485,62 @@
       -45deg,
       rgba(0,0,0,0.0) 0px,
       rgba(0,0,0,0.0) 8px,
-      rgba(0,0,0,0.3) 8px,
-      rgba(0,0,0,0.3) 9px
+      rgba(0,0,0,0.35) 8px,
+      rgba(0,0,0,0.35) 9px
     );
     pointer-events: none;
     z-index: 3;
     display: none;
   }
   .quarter.dead .eliminated-overlay { display: block; }
+
+  /* Smoke particle canvas per quarter */
+  .elim-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 6;
+  }
+
+  /* Skull overlay */
+  .skull-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+    z-index: 7;
+    opacity: 0;
+    background: radial-gradient(ellipse at center, rgba(60,0,0,0.55) 0%, rgba(0,0,0,0) 75%);
+  }
+  .skull-overlay.animate {
+    animation: skullAppear 1s cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+  .skull-overlay.settled {
+    opacity: 0.6;
+  }
+  @keyframes skullAppear {
+    0%   { opacity: 0; transform: scale(0.2) rotate(-20deg); filter: blur(8px); }
+    50%  { opacity: 1; transform: scale(1.2) rotate(6deg);  filter: blur(0px); }
+    70%  { transform: scale(0.92) rotate(-3deg); }
+    85%  { transform: scale(1.05) rotate(1deg); }
+    100% { opacity: 0.6; transform: scale(1) rotate(0deg); }
+  }
+  .skull-glyph {
+    font-size: clamp(52px, 15vw, 100px);
+    line-height: 1;
+    filter: drop-shadow(0 0 16px rgba(220,40,40,0.9))
+            drop-shadow(0 0 40px rgba(180,0,0,0.6))
+            drop-shadow(0 4px 8px rgba(0,0,0,1));
+  }
+  .skull-label {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(9px, 2vw, 13px);
+    letter-spacing: 0.3em;
+    color: rgba(255,120,120,0.8);
+    text-transform: uppercase;
+    margin-top: 4px;
+    text-shadow: 0 0 10px rgba(200,0,0,0.8);
+  }
 
   .cmd-toggle-row {
     display: flex;
@@ -541,7 +635,8 @@ function addHistory(entry) {
   if (entry.type === 'life' && state.history.length > 0) {
     const last = state.history[0];
     const sameDir = (entry.delta > 0) === (last.delta > 0);
-    if (last.type === 'life' && last.player === entry.player && sameDir) {
+    const within10s = (Date.now() - last.t) < 4000;
+    if (last.type === 'life' && last.player === entry.player && sameDir && within10s) {
       last.delta += entry.delta;
       last.after  = entry.after;
       last.t      = Date.now();
@@ -597,13 +692,8 @@ function load() {
 load();
 
 const PALETTE = [
-  // Vibrant saturated
-  '#c0392b','#e74c3c','#e67e22','#f1c40f','#2ecc71',
-  '#1abc9c','#3498db','#9b59b6','#e91e8c','#ff6b35',
-  // Mid-tone
-  '#8e44ad','#2980b9','#16a085','#27ae60','#d35400',
-  // Dark atmospheric
-  '#1a3a2a','#2a1a3a','#3a2a1a','#1a2a3a','#1c1c1c',
+  '#1a3a2a','#2a1a3a','#3a2a1a','#1a2a3a','#3a1a1a',
+  '#1c1c1c','#2e2e2e','#3e1a2e','#1e3e2e','#2a2a1a',
 ];
 
 const app = document.getElementById('app');
@@ -663,6 +753,32 @@ function addLifeBtnListeners(btn, idx, dir) {
   btn.addEventListener('click', e => { e.stopPropagation(); }); // handled by mouseup
 }
 
+function doPing(atkIdx, btn) {
+  const targets = [0,1,2,3].filter(i => i !== atkIdx && !isEliminated(i));
+  if (targets.length === 0) return;
+
+  targets.forEach(i => {
+    state.players[i].life -= 1;
+    updateLife(i);
+  });
+
+  btn.classList.remove('flash');
+  void btn.offsetWidth;
+  btn.classList.add('flash');
+
+  // Collate consecutive pings from same attacker within 10 seconds
+  const last = state.history[0];
+  const within10s = last && (Date.now() - last.t) < 4000;
+  if (last && last.type === 'ping' && last.attacker === atkIdx && within10s) {
+    last.count = (last.count || 1) + 1;
+    last.t = Date.now();
+  } else {
+    state.history.unshift({ t: Date.now(), type: 'ping', attacker: atkIdx, targets, count: 1 });
+    if (state.history.length > 10) state.history.length = 10;
+  }
+  save();
+}
+
 function buildUI() {
   app.innerHTML = '';
   quarters.length = 0;
@@ -677,16 +793,46 @@ function buildUI() {
     q.dataset.idx = idx;
 
     const cb = document.createElement('div');
-    cb.className = 'color-btn';
+    // Players 0 & 3: colour top-left, ping top-right
+    // Players 1 & 2: colour top-right, ping top-left
+    const colOnLeft = (idx === 1 || idx === 2);
+    cb.className = 'color-btn ' + (colOnLeft ? 'tl' : 'tr');
     cb.innerHTML = '&#127912;';
     cb.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
     cb.addEventListener('click', e => { e.stopPropagation(); openColorModal(idx); });
     cb.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); openColorModal(idx); });
     q.appendChild(cb);
 
+    // Ping button — deals 1 damage to all other non-eliminated players
+    const pingBtn = document.createElement('div');
+    pingBtn.className = 'ping-btn ' + (colOnLeft ? 'pr' : 'pl');
+    pingBtn.innerHTML = '&#x26A1;&#x26A1;&#x26A1;';
+    pingBtn.title = 'Ping all others for 1';
+    pingBtn.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
+    pingBtn.addEventListener('click', e => { e.stopPropagation(); doPing(idx, pingBtn); });
+    pingBtn.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); doPing(idx, pingBtn); });
+    q.appendChild(pingBtn);
+
     const eo = document.createElement('div');
     eo.className = 'eliminated-overlay';
     q.appendChild(eo);
+
+    // Particle canvas for smoke animation
+    const ec = document.createElement('canvas');
+    ec.className = 'elim-canvas';
+    q.appendChild(ec);
+
+    // Skull overlay (persists after elimination)
+    const skull = document.createElement('div');
+    skull.className = 'skull-overlay';
+    skull.innerHTML = '<div class="skull-glyph">\u2620\uFE0F</div><div class="skull-label">Eliminated</div>';
+    q.appendChild(skull);
+
+    // If already eliminated on load, show skull without animation
+    if (isEliminated(idx)) {
+      q.classList.add('dead');
+      skull.classList.add('settled');
+    }
 
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name';
@@ -747,14 +893,32 @@ function updateLife(idx) {
   const el = q.querySelector('.life-total');
   el.textContent = p.life;
   const elim = isEliminated(idx);
+  const wasDeadBefore = q.classList.contains('dead');
   el.className = 'life-total' +
     (p.life <= 5 && p.life > 0 && !elim ? ' low' : '') +
     (elim ? ' dead' : '');
-  if (elim) q.classList.add('dead');
-  else q.classList.remove('dead');
+  if (elim) {
+    q.classList.add('dead');
+    if (!wasDeadBefore) triggerElimAnimation(idx);
+  } else {
+    q.classList.remove('dead');
+    // Clear skull if somehow un-eliminated (e.g. life restored)
+    const skull = q.querySelector('.skull-overlay');
+    skull.className = 'skull-overlay';
+  }
   el.classList.remove('bump');
   void el.offsetWidth;
   el.classList.add('bump');
+}
+
+function triggerElimAnimation(idx) {
+  const q = quarters[idx];
+  const skull = q.querySelector('.skull-overlay');
+  skull.classList.add('animate');
+  skull.addEventListener('animationend', () => {
+    skull.classList.remove('animate');
+    skull.classList.add('settled');
+  }, { once: true });
 }
 
 function changeLife(idx, delta) {
@@ -1171,11 +1335,40 @@ historyBtn.addEventListener('touchend', e => { e.preventDefault(); openHistoryMo
 function applyDisplayMode() {
   if (state.desktopMode) {
     app.classList.add('desktop-mode');
-    document.getElementById('mode-btn').textContent = '\u2B1C'; // hollow = mobile mode available
+    document.getElementById('mode-btn').textContent = '\u2B1C';
   } else {
     app.classList.remove('desktop-mode');
-    document.getElementById('mode-btn').textContent = '\u2B1B'; // filled = desktop mode available
+    document.getElementById('mode-btn').textContent = '\u2B1B';
   }
+
+  // Reassign button corners based on mode.
+  // In mobile mode, top quarters are rotated 180deg so their local top-left
+  // appears at the bottom-right on screen. In desktop mode all quarters are
+  // unrotated, so we want all colour buttons on the physically outer corners
+  // and all ping buttons on the inner corners (near centre), matching the
+  // same visual intent in both modes.
+  //
+  // Mobile:  players 0,3 → colOnLeft=true  (colour tl, ping pr)
+  //          players 1,2 → colOnLeft=false (colour tr, ping pl)
+  // Desktop: top players (0,1) are no longer rotated, so we flip their logic.
+  //          players 0,1 → colOnLeft=true  (colour tl, ping pr)
+  //          players 2,3 → colOnLeft=false (colour tr, ping pl)
+  quarters.forEach((q, idx) => {
+    const cb   = q.querySelector('.color-btn');
+    const pb   = q.querySelector('.ping-btn');
+    if (!cb || !pb) return;
+
+    let colOnLeft;
+    if (state.desktopMode) {
+      colOnLeft = (idx === 0 || idx === 1);
+      cb.className = 'color-btn ' + (colOnLeft ? 'tl' : 'tr');
+      pb.className = 'ping-btn pb';
+    } else {
+      colOnLeft = (idx === 1 || idx === 2);
+      cb.className = 'color-btn ' + (colOnLeft ? 'tl' : 'tr');
+      pb.className = 'ping-btn ' + (colOnLeft ? 'pr' : 'pl');
+    }
+  });
 }
 
 const modeBtn = document.getElementById('mode-btn');
@@ -1221,6 +1414,16 @@ function openHistoryModal() {
           '<span class="hist-icon">\u2694</span>' +
           '<span class="hist-text"><b>' + atk + cLabel + '</b> \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(cmd total: ' + h.totalNow + ')</span></span>' +
           '<span class="hist-time">' + time + '</span></li>';
+      } else if (h.type === 'ping') {
+        const atk = state.players[h.attacker].name;
+        const tnames = (h.targets || []).map(i => state.players[i].name).join(', ');
+        const count = h.count || 1;
+        const dmg = count > 1 ? '\u2212' + count : '\u22121';
+        const times = count > 1 ? ' \u00d7' + count : '';
+        rows += '<li>' +
+          '<span class="hist-icon">&#x26A1;</span>' +
+          '<span class="hist-text"><b>' + atk + '</b> pinged' + times + ' <span class="hist-delta-neg">' + dmg + '</span> \u2192 ' + tnames + '</span>' +
+          '<span class="hist-time">' + time + '</span></li>';
       }
     });
     rows += '</ul>';
@@ -1228,6 +1431,7 @@ function openHistoryModal() {
 
   m.innerHTML =
     '<h2>Recent History</h2>' +
+    '<p style="text-align:center;font-size:clamp(9px,2vw,11px);color:var(--text-dim);margin-bottom:8px;letter-spacing:0.06em;">(Most recent at the top)</p>' +
     rows +
     '<div class="modal-btns"><button class="btn-cancel" id="hist-close">Close</button></div>';
   bd.appendChild(m);
