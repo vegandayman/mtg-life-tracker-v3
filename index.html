@@ -582,7 +582,55 @@
     background: rgba(0,0,0,0.52);
   }
 
-  /* Scryfall input fields in name modal */
+  /* Art visibility toggle */
+  .art-toggle {
+    position: absolute;
+    bottom: 10px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 20px;
+    padding: 3px 8px 3px 5px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  /* Only show toggle when art is loaded */
+  .quarter.has-art .art-toggle { opacity: 0.75; }
+  .quarter.has-art .art-toggle:hover,
+  .quarter.has-art .art-toggle:active { opacity: 1; }
+  .art-toggle-pip {
+    width: 28px; height: 15px;
+    border-radius: 10px;
+    background: rgba(80,80,80,0.8);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .art-toggle-pip::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #aaa;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .art-toggle.on .art-toggle-pip { background: rgba(201,168,76,0.6); }
+  .art-toggle.on .art-toggle-pip::after { transform: translateX(13px); background: var(--gold-light); }
+  .art-toggle-label {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(7px, 1.5vw, 9px);
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
   .cmd-name-input {
     width: 100%;
     background: rgba(0,0,0,0.5);
@@ -726,6 +774,7 @@ let state = {
     cmd2Name: '',
     artUrl1: '',
     artUrl2: '',
+    artVisible: true,
   })),
   history: [],
   desktopMode: false,
@@ -785,10 +834,11 @@ function load() {
         if (typeof p.cmdDmg[0] === 'number') {
           p.cmdDmg = p.cmdDmg.map(v => [v, 0]);
         }
-        if (!p.cmd1Name) p.cmd1Name = '';
-        if (!p.cmd2Name) p.cmd2Name = '';
-        if (!p.artUrl1)  p.artUrl1  = '';
-        if (!p.artUrl2)  p.artUrl2  = '';
+        if (!p.cmd1Name)                p.cmd1Name   = '';
+        if (!p.cmd2Name)                p.cmd2Name   = '';
+        if (!p.artUrl1)                 p.artUrl1    = '';
+        if (!p.artUrl2)                 p.artUrl2    = '';
+        if (p.artVisible === undefined) p.artVisible = true;
       });
     }
   } catch(e) {}
@@ -912,6 +962,15 @@ function buildUI() {
     const artBg = document.createElement('div');
     artBg.className = 'art-bg';
     q.appendChild(artBg);
+
+    // Art visibility toggle — only visible when art is loaded
+    const artToggle = document.createElement('div');
+    artToggle.className = 'art-toggle' + (p.artVisible ? ' on' : '');
+    artToggle.innerHTML = '<div class="art-toggle-pip"></div><span class="art-toggle-label">Art</span>';
+    artToggle.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
+    artToggle.addEventListener('click', e => { e.stopPropagation(); toggleArt(idx); });
+    artToggle.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); toggleArt(idx); });
+    q.appendChild(artToggle);
 
     const eo = document.createElement('div');
     eo.className = 'eliminated-overlay';
@@ -1362,23 +1421,33 @@ function openCmdModal(atkIdx, defIdx) {
   m.querySelector('#cmd-confirm').addEventListener('touchend', e => { e.preventDefault(); confirm(); });
 }
 
+function toggleArt(idx) {
+  state.players[idx].artVisible = !state.players[idx].artVisible;
+  const q = quarters[idx];
+  const toggle = q.querySelector('.art-toggle');
+  toggle.classList.toggle('on', state.players[idx].artVisible);
+  applyArtBackground(idx);
+  save();
+}
+
 function applyArtBackground(idx) {
   const q = quarters[idx];
   if (!q) return;
   const artBg = q.querySelector('.art-bg');
   const p = state.players[idx];
   const u1 = p.artUrl1, u2 = p.artUrl2;
+  const visible = p.artVisible && u1;
 
-  if (!u1) {
-    artBg.style.cssText = '';
+  if (u1) q.classList.add('has-art');
+  else q.classList.remove('has-art');
+
+  if (!visible) {
+    artBg.innerHTML = '';
+    artBg.style.backgroundImage = '';
     return;
   }
 
   if (u1 && u2) {
-    // Use two pseudo-elements via a single div split with a CSS trick:
-    // Left half: C1, right half: C2, each cover-scaled to their half
-    // We achieve this with a canvas-drawn data URI — simplest cross-browser approach
-    // is to use two absolutely positioned child divs instead
     artBg.innerHTML =
       '<div style="position:absolute;inset:0;right:50%;background-image:url(\''+u1+'\');background-size:cover;background-position:center top;"></div>' +
       '<div style="position:absolute;inset:0;left:50%;background-image:url(\''+u2+'\');background-size:cover;background-position:center top;"></div>' +
