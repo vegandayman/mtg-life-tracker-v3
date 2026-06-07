@@ -568,7 +568,67 @@
     text-shadow: 0 0 10px rgba(200,0,0,0.8);
   }
 
-  .cmd-toggle-row {
+  /* Commander art background */
+  .art-bg {
+    position: absolute; inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-size: cover;
+    background-position: center top;
+  }
+  .art-bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.52);
+  }
+
+  /* Scryfall input fields in name modal */
+  .cmd-name-input {
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 6px;
+    color: var(--text-light);
+    font-family: 'Cinzel', serif;
+    font-size: clamp(11px, 2.5vw, 14px);
+    padding: 8px 12px;
+    outline: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+  .cmd-name-input:focus { border-color: var(--gold); }
+  .cmd-name-label {
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+    display: block;
+    margin-top: 10px;
+  }
+  .cmd-art-error {
+    font-size: clamp(9px, 2vw, 11px);
+    color: #ff8080;
+    margin-bottom: 4px;
+    min-height: 14px;
+    letter-spacing: 0.04em;
+  }
+  .cmd-art-preview {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0 4px;
+    height: 60px;
+  }
+  .cmd-art-preview div {
+    flex: 1;
+    border-radius: 4px;
+    background-size: cover;
+    background-position: center top;
+    border: 1px solid rgba(201,168,76,0.2);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .cmd-art-preview div.loaded { opacity: 1; }
     display: flex;
     gap: 8px;
     margin-bottom: 10px;
@@ -655,7 +715,11 @@ let state = {
     name: NAMES[i],
     life: START_LIFE,
     color: COLORS[i],
-    cmdDmg: [[0,0],[0,0],[0,0],[0,0]], // [attacker][cmd 0 or 1]
+    cmdDmg: [[0,0],[0,0],[0,0],[0,0]],
+    cmd1Name: '',
+    cmd2Name: '',
+    artUrl1: '',
+    artUrl2: '',
   })),
   history: [],
   desktopMode: false,
@@ -715,6 +779,10 @@ function load() {
         if (typeof p.cmdDmg[0] === 'number') {
           p.cmdDmg = p.cmdDmg.map(v => [v, 0]);
         }
+        if (!p.cmd1Name) p.cmd1Name = '';
+        if (!p.cmd2Name) p.cmd2Name = '';
+        if (!p.artUrl1)  p.artUrl1  = '';
+        if (!p.artUrl2)  p.artUrl2  = '';
       });
     }
   } catch(e) {}
@@ -835,6 +903,10 @@ function buildUI() {
     cb.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); openColorModal(idx); });
     q.appendChild(cb);
 
+    const artBg = document.createElement('div');
+    artBg.className = 'art-bg';
+    q.appendChild(artBg);
+
     const eo = document.createElement('div');
     eo.className = 'eliminated-overlay';
     q.appendChild(eo);
@@ -901,6 +973,7 @@ function buildUI() {
 
   updateAllBadges();
   applyDisplayMode();
+  [0,1,2,3].forEach(i => applyArtBackground(i));
   setupDrag();
 }
 
@@ -966,7 +1039,11 @@ function updateAllBadges() {
         if (dmg > 0) {
           const b = document.createElement('div');
           b.className = 'cmd-badge' + (dmg >= 21 ? ' danger' : '');
-          b.textContent = '\u2694 ' + state.players[atk].name + ' C' + (cmd+1) + ': ' + dmg;
+          const atkPlayer = state.players[atk];
+          const cmdLabel = cmd === 0
+            ? (atkPlayer.cmd1Name || 'C1')
+            : (atkPlayer.cmd2Name || 'C2');
+          b.textContent = '\u2694 ' + atkPlayer.name + ' (' + cmdLabel + '): ' + dmg;
           badges.appendChild(b);
         }
       });
@@ -1166,7 +1243,10 @@ function openCmdModal(atkIdx, defIdx) {
   const atk = state.players[atkIdx];
   const def = state.players[defIdx];
   let val = 0;
-  let cmdSlot = 0; // 0 = Commander 1, 1 = Commander 2
+  let cmdSlot = 0;
+
+  const c1Label = atk.cmd1Name || 'Commander 1';
+  const c2Label = atk.cmd2Name || 'Commander 2';
 
   const bd = createBackdrop();
   const m = document.createElement('div');
@@ -1178,8 +1258,8 @@ function openCmdModal(atkIdx, defIdx) {
     '<span style="color:var(--gold);margin:0 8px;">\u2694</span>' +
     '<span class="defender">' + def.name + '</span></p>' +
     '<div class="cmd-toggle-row">' +
-    '<button class="cmd-toggle active" id="cmd-c1">Commander 1</button>' +
-    '<button class="cmd-toggle" id="cmd-c2">Commander 2</button>' +
+    '<button class="cmd-toggle active" id="cmd-c1">' + c1Label + '</button>' +
+    '<button class="cmd-toggle" id="cmd-c2">' + c2Label + '</button>' +
     '</div>' +
     '<p class="cmd-sofar" id="cmd-sofar"></p>' +
     '<div class="cmd-counter">' +
@@ -1193,12 +1273,14 @@ function openCmdModal(atkIdx, defIdx) {
     '</div>';
   bd.appendChild(m);
 
-  const valEl    = m.querySelector('#cmd-val');
-  const sofarEl  = m.querySelector('#cmd-sofar');
+  const valEl   = m.querySelector('#cmd-val');
+  const sofarEl = m.querySelector('#cmd-sofar');
+
+  function cmdName() { return cmdSlot === 0 ? c1Label : c2Label; }
 
   function updateSofar() {
     const total = def.cmdDmg[atkIdx][cmdSlot];
-    sofarEl.textContent = 'C' + (cmdSlot+1) + ' total so far: ' + total;
+    sofarEl.textContent = cmdName() + ' total so far: ' + total;
   }
   updateSofar();
 
@@ -1262,7 +1344,7 @@ function openCmdModal(atkIdx, defIdx) {
       state.players[defIdx].life -= val;
       state.players[defIdx].cmdDmg[atkIdx][cmdSlot] += val;
       const totalNow = state.players[defIdx].cmdDmg[atkIdx][cmdSlot];
-      addHistory({ type: 'cmd', attacker: atkIdx, defender: defIdx, cmdSlot, amount: val, totalNow });
+      addHistory({ type: 'cmd', attacker: atkIdx, defender: defIdx, cmdSlot, cmdName: cmdName(), amount: val, totalNow });
       if (isEliminated(defIdx)) state.history[0].elim = true;
       updateLife(defIdx);
       updateAllBadges();
@@ -1274,33 +1356,149 @@ function openCmdModal(atkIdx, defIdx) {
   m.querySelector('#cmd-confirm').addEventListener('touchend', e => { e.preventDefault(); confirm(); });
 }
 
+function applyArtBackground(idx) {
+  const q = quarters[idx];
+  if (!q) return;
+  const artBg = q.querySelector('.art-bg');
+  const p = state.players[idx];
+  const u1 = p.artUrl1, u2 = p.artUrl2;
+  if (!u1) {
+    artBg.style.backgroundImage = '';
+    return;
+  }
+  if (u1 && u2) {
+    // Blend: C1 left, C2 right with gradient mask
+    artBg.style.backgroundImage =
+      'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,1) 55%, rgba(0,0,0,1) 100%),' +
+      'url("' + u2 + '"),' +
+      'url("' + u1 + '")';
+    artBg.style.backgroundSize = 'cover, cover, cover';
+    artBg.style.backgroundPosition = 'center, right center, left center';
+  } else {
+    artBg.style.backgroundImage = 'url("' + u1 + '")';
+    artBg.style.backgroundSize = 'cover';
+    artBg.style.backgroundPosition = 'center top';
+  }
+}
+
+async function scryfallLookup(name) {
+  const url = 'https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(name);
+  let res;
+  try {
+    res = await fetch(url);
+  } catch(e) {
+    throw new Error('Network error: ' + e.message);
+  }
+  const data = await res.json();
+  if (!res.ok || data.object === 'error') {
+    throw new Error(data.details || 'Not found');
+  }
+  const art = (data.image_uris && data.image_uris.art_crop) ||
+              (data.card_faces && data.card_faces[0] && data.card_faces[0].image_uris && data.card_faces[0].image_uris.art_crop);
+  if (!art) throw new Error('Card found but has no art crop');
+  return { art, name: data.name };
+}
+
 function openNameModal(idx) {
   const p = state.players[idx];
   const bd = createBackdrop();
   const m = document.createElement('div');
   m.className = 'modal';
   m.innerHTML =
-    '<h2>Edit Name</h2>' +
+    '<h2>Player Setup</h2>' +
+    '<label class="cmd-name-label">Player Name</label>' +
     '<input class="name-input" id="name-inp" type="text" maxlength="20" value="' + p.name.replace(/"/g,'&quot;') + '" placeholder="Player name\u2026">' +
+    '<label class="cmd-name-label">Commander 1</label>' +
+    '<input class="cmd-name-input" id="cmd1-inp" type="text" value="' + (p.cmd1Name||'').replace(/"/g,'&quot;') + '" placeholder="e.g. Atraxa\u2026">' +
+    '<div class="cmd-art-error" id="err1"></div>' +
+    '<label class="cmd-name-label">Commander 2 <span style="opacity:0.5">(optional)</span></label>' +
+    '<input class="cmd-name-input" id="cmd2-inp" type="text" value="' + (p.cmd2Name||'').replace(/"/g,'&quot;') + '" placeholder="e.g. Kraum\u2026">' +
+    '<div class="cmd-art-error" id="err2"></div>' +
+    '<div class="cmd-art-preview"><div id="prev1"></div><div id="prev2"></div></div>' +
     '<div class="modal-btns" style="margin-top:12px">' +
     '<button class="btn-cancel" id="name-cancel">Cancel</button>' +
     '<button class="btn-confirm" id="name-ok">Save</button>' +
     '</div>';
   bd.appendChild(m);
 
-  const inp = m.querySelector('#name-inp');
-  inp.focus(); inp.select();
+  const nameInp = m.querySelector('#name-inp');
+  const cmd1Inp = m.querySelector('#cmd1-inp');
+  const cmd2Inp = m.querySelector('#cmd2-inp');
+  const err1    = m.querySelector('#err1');
+  const err2    = m.querySelector('#err2');
+  const prev1   = m.querySelector('#prev1');
+  const prev2   = m.querySelector('#prev2');
 
-  const saveName = () => {
-    const v = inp.value.trim();
-    if (v) { state.players[idx].name = v; save(); buildUI(); }
+  // Show existing art previews
+  if (p.artUrl1) { prev1.style.backgroundImage = 'url("'+p.artUrl1+'")'; prev1.classList.add('loaded'); }
+  if (p.artUrl2) { prev2.style.backgroundImage = 'url("'+p.artUrl2+'")'; prev2.classList.add('loaded'); }
+
+  nameInp.focus();
+
+  const saveName = async () => {
+    const playerName = nameInp.value.trim();
+    const c1 = cmd1Inp.value.trim();
+    const c2 = cmd2Inp.value.trim();
+    err1.textContent = ''; err2.textContent = '';
+
+    if (playerName) state.players[idx].name = playerName;
+
+    let url1 = p.artUrl1, url2 = p.artUrl2;
+    let c1Resolved = p.cmd1Name, c2Resolved = p.cmd2Name;
+    let anyError = false;
+
+    const saveBtn = m.querySelector('#name-ok');
+    saveBtn.textContent = 'Looking up\u2026';
+    saveBtn.disabled = true;
+
+    if (c1) {
+      try {
+        const res = await scryfallLookup(c1);
+        url1 = res.art; c1Resolved = res.name;
+        prev1.style.backgroundImage = 'url("'+url1+'")';
+        prev1.classList.add('loaded');
+      } catch(e) {
+        err1.textContent = e.message || 'Commander not found on Scryfall.';
+        anyError = true;
+      }
+    } else if (c1 === '' && cmd1Inp.value === '') {
+      url1 = ''; c1Resolved = '';
+      url2 = ''; c2Resolved = '';
+    }
+
+    if (c2 && !anyError) {
+      try {
+        const res = await scryfallLookup(c2);
+        url2 = res.art; c2Resolved = res.name;
+        prev2.style.backgroundImage = 'url("'+url2+'")';
+        prev2.classList.add('loaded');
+      } catch(e) {
+        err2.textContent = e.message || 'Commander not found on Scryfall.';
+        anyError = true;
+      }
+    } else if (c2 === '' && cmd2Inp.value === '') {
+      url2 = ''; c2Resolved = '';
+    }
+
+    saveBtn.textContent = 'Save';
+    saveBtn.disabled = false;
+
+    if (anyError) return; // keep modal open to show errors
+
+    state.players[idx].cmd1Name = c1Resolved;
+    state.players[idx].cmd2Name = c2Resolved;
+    state.players[idx].artUrl1  = url1;
+    state.players[idx].artUrl2  = url2;
+    save();
+    buildUI();
     closeModal();
   };
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveName(); });
+
   m.querySelector('#name-cancel').addEventListener('click', closeModal);
-  m.querySelector('#name-ok').addEventListener('click', saveName);
   m.querySelector('#name-cancel').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
+  m.querySelector('#name-ok').addEventListener('click', saveName);
   m.querySelector('#name-ok').addEventListener('touchend', e => { e.preventDefault(); saveName(); });
+  nameInp.addEventListener('keydown', e => { if (e.key === 'Enter') saveName(); });
 }
 
 function openColorModal(idx) {
@@ -1492,11 +1690,11 @@ function openHistoryModal() {
         } else if (h.type === 'cmd') {
           const atk = state.players[h.attacker].name;
           const def = state.players[h.defender].name;
-          const cLabel = h.cmdSlot === 1 ? ' C2' : ' C1';
+          const cLabel = h.cmdName || (h.cmdSlot === 1 ? 'C2' : 'C1');
           const elimTag = h.elim ? ' <span style="color:#ff8080;font-size:0.9em;">\u2620 Eliminated</span>' : '';
           rows += '<li>' +
             '<span class="hist-icon">\u2694</span>' +
-            '<span class="hist-text"><b>' + atk + cLabel + '</b> \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(cmd total: ' + h.totalNow + ')</span>' + elimTag + '</span>' +
+            '<span class="hist-text"><b>' + atk + '</b> (' + cLabel + ') \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(total: ' + h.totalNow + ')</span>' + elimTag + '</span>' +
             '<span class="hist-time">' + time + '</span></li>';
         } else if (h.type === 'ping') {
           const atk = state.players[h.attacker].name;
