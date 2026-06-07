@@ -1764,7 +1764,14 @@ function openResetModal() {
 }
 
 function doReset() {
-  state.players.forEach(p => { p.life = START_LIFE; p.cmdDmg = [[0,0],[0,0],[0,0],[0,0]]; });
+  state.players.forEach(p => {
+    p.life = START_LIFE;
+    p.cmdDmg = [[0,0],[0,0],[0,0],[0,0]];
+    p.cmd1Name = '';
+    p.cmd2Name = '';
+    p.artUrl1 = '';
+    p.artUrl2 = '';
+  });
   state.history = [];
   save(); buildUI();
 }
