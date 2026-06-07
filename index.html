@@ -635,18 +635,23 @@
   }
   .cmd-toggle {
     flex: 1;
-    padding: clamp(6px, 1.5vw, 9px);
+    min-width: 0;
+    padding: clamp(6px, 1.5vw, 9px) 8px;
     border-radius: 6px;
     border: 1px solid rgba(201,168,76,0.25);
     background: rgba(0,0,0,0.3);
     color: var(--text-dim);
     font-family: 'Cinzel', serif;
-    font-size: clamp(10px, 2.2vw, 12px);
-    letter-spacing: 0.1em;
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.06em;
     cursor: pointer;
     text-transform: uppercase;
     transition: background 0.12s, color 0.12s, border-color 0.12s;
     -webkit-tap-highlight-color: transparent;
+    white-space: normal;
+    word-break: break-word;
+    text-align: center;
+    line-height: 1.3;
   }
   .cmd-toggle.active {
     background: rgba(201,168,76,0.18);
@@ -1362,22 +1367,30 @@ function applyArtBackground(idx) {
   const artBg = q.querySelector('.art-bg');
   const p = state.players[idx];
   const u1 = p.artUrl1, u2 = p.artUrl2;
+
   if (!u1) {
     artBg.style.backgroundImage = '';
+    artBg.style.backgroundSize = '';
+    artBg.style.backgroundPosition = '';
     return;
   }
+
   if (u1 && u2) {
-    // Blend: C1 left, C2 right with gradient mask
+    // Layer 1: gradient to blend between the two images
+    // Layer 2: C2 art on the right half
+    // Layer 3: C1 art on the left half
     artBg.style.backgroundImage =
-      'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,1) 55%, rgba(0,0,0,1) 100%),' +
+      'linear-gradient(to right, transparent 40%, black 60%),' +
       'url("' + u2 + '"),' +
       'url("' + u1 + '")';
-    artBg.style.backgroundSize = 'cover, cover, cover';
-    artBg.style.backgroundPosition = 'center, right center, left center';
+    artBg.style.backgroundSize = '100% 100%, 50% 100%, 50% 100%';
+    artBg.style.backgroundPosition = '0 0, right center, left center';
+    artBg.style.backgroundRepeat = 'no-repeat, no-repeat, no-repeat';
   } else {
     artBg.style.backgroundImage = 'url("' + u1 + '")';
     artBg.style.backgroundSize = 'cover';
     artBg.style.backgroundPosition = 'center top';
+    artBg.style.backgroundRepeat = 'no-repeat';
   }
 }
 
