@@ -289,8 +289,7 @@
     border: 1px solid rgba(201,168,76,0.4);
     border-radius: 12px;
     padding: clamp(14px, 4vw, 28px);
-    min-width: min(92vw, 480px);
-    max-width: min(96vw, 520px);
+    width: clamp(280px, 88vw, 520px);
     box-shadow: 0 8px 48px rgba(0,0,0,0.9), inset 0 1px 0 rgba(201,168,76,0.15);
     color: var(--text-light);
     font-family: 'Cinzel', serif;
@@ -1487,7 +1486,7 @@ function openHistoryModal() {
           const cls = h.delta > 0 ? 'hist-delta-pos' : 'hist-delta-neg';
           const elimTag = h.elim ? ' <span style="color:#ff8080;font-size:0.9em;">\u2620 Eliminated</span>' : '';
           rows += '<li>' +
-            '<span class="hist-icon">' + (h.delta > 0 ? '\u2665' : '\u2620') + '</span>' +
+            '<span class="hist-icon">\u2665</span>' +
             '<span class="hist-text"><b>' + pname + '</b> life <span class="' + cls + '">' + sign + h.delta + '</span> &rarr; ' + h.after + elimTag + '</span>' +
             '<span class="hist-time">' + time + '</span></li>';
         } else if (h.type === 'cmd') {
