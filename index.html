@@ -629,6 +629,7 @@
     transition: opacity 0.3s;
   }
   .cmd-art-preview div.loaded { opacity: 1; }
+  .cmd-toggle-row {
     display: flex;
     gap: 8px;
     margin-bottom: 10px;
@@ -1369,24 +1370,22 @@ function applyArtBackground(idx) {
   const u1 = p.artUrl1, u2 = p.artUrl2;
 
   if (!u1) {
-    artBg.style.backgroundImage = '';
-    artBg.style.backgroundSize = '';
-    artBg.style.backgroundPosition = '';
+    artBg.style.cssText = '';
     return;
   }
 
   if (u1 && u2) {
-    // Layer 1: gradient to blend between the two images
-    // Layer 2: C2 art on the right half
-    // Layer 3: C1 art on the left half
-    artBg.style.backgroundImage =
-      'linear-gradient(to right, transparent 40%, black 60%),' +
-      'url("' + u2 + '"),' +
-      'url("' + u1 + '")';
-    artBg.style.backgroundSize = '100% 100%, 50% 100%, 50% 100%';
-    artBg.style.backgroundPosition = '0 0, right center, left center';
-    artBg.style.backgroundRepeat = 'no-repeat, no-repeat, no-repeat';
+    // Use two pseudo-elements via a single div split with a CSS trick:
+    // Left half: C1, right half: C2, each cover-scaled to their half
+    // We achieve this with a canvas-drawn data URI — simplest cross-browser approach
+    // is to use two absolutely positioned child divs instead
+    artBg.innerHTML =
+      '<div style="position:absolute;inset:0;right:50%;background-image:url(\''+u1+'\');background-size:cover;background-position:center top;"></div>' +
+      '<div style="position:absolute;inset:0;left:50%;background-image:url(\''+u2+'\');background-size:cover;background-position:center top;"></div>' +
+      '<div style="position:absolute;inset:0;background:linear-gradient(to right,transparent 35%,rgba(0,0,0,0.7) 50%,transparent 65%);pointer-events:none;"></div>';
+    artBg.style.backgroundImage = '';
   } else {
+    artBg.innerHTML = '';
     artBg.style.backgroundImage = 'url("' + u1 + '")';
     artBg.style.backgroundSize = 'cover';
     artBg.style.backgroundPosition = 'center top';
@@ -1458,45 +1457,42 @@ function openNameModal(idx) {
 
     let url1 = p.artUrl1, url2 = p.artUrl2;
     let c1Resolved = p.cmd1Name, c2Resolved = p.cmd2Name;
-    let anyError = false;
 
     const saveBtn = m.querySelector('#name-ok');
     saveBtn.textContent = 'Looking up\u2026';
     saveBtn.disabled = true;
 
     if (c1) {
+      c1Resolved = c1; // always save the entered name
       try {
         const res = await scryfallLookup(c1);
         url1 = res.art; c1Resolved = res.name;
         prev1.style.backgroundImage = 'url("'+url1+'")';
         prev1.classList.add('loaded');
       } catch(e) {
-        err1.textContent = e.message || 'Commander not found on Scryfall.';
-        anyError = true;
+        err1.textContent = 'Art not found (' + e.message + ') — name saved without art.';
       }
-    } else if (c1 === '' && cmd1Inp.value === '') {
+    } else if (cmd1Inp.value === '') {
       url1 = ''; c1Resolved = '';
       url2 = ''; c2Resolved = '';
     }
 
-    if (c2 && !anyError) {
+    if (c2) {
+      c2Resolved = c2; // always save the entered name
       try {
         const res = await scryfallLookup(c2);
         url2 = res.art; c2Resolved = res.name;
         prev2.style.backgroundImage = 'url("'+url2+'")';
         prev2.classList.add('loaded');
       } catch(e) {
-        err2.textContent = e.message || 'Commander not found on Scryfall.';
-        anyError = true;
+        err2.textContent = 'Art not found (' + e.message + ') — name saved without art.';
       }
-    } else if (c2 === '' && cmd2Inp.value === '') {
+    } else if (cmd2Inp.value === '') {
       url2 = ''; c2Resolved = '';
     }
 
     saveBtn.textContent = 'Save';
     saveBtn.disabled = false;
-
-    if (anyError) return; // keep modal open to show errors
 
     state.players[idx].cmd1Name = c1Resolved;
     state.players[idx].cmd2Name = c2Resolved;
