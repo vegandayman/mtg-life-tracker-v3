@@ -96,6 +96,8 @@
     position: relative;
     z-index: 1;
     transition: transform 0.1s, color 0.3s;
+    text-align: center;
+    min-width: 2.2ch;
   }
   .life-total.bump { animation: bump 0.18s ease-out; }
   .life-total.low { color: #ff6b6b; text-shadow: 0 0 20px rgba(255,80,80,0.6); }
@@ -286,8 +288,9 @@
     background: linear-gradient(145deg, #16120c, #1e1a10);
     border: 1px solid rgba(201,168,76,0.4);
     border-radius: 12px;
-    padding: clamp(18px, 5vw, 32px);
-    min-width: clamp(260px, 80vw, 380px);
+    padding: clamp(14px, 4vw, 28px);
+    min-width: min(92vw, 480px);
+    max-width: min(96vw, 520px);
     box-shadow: 0 8px 48px rgba(0,0,0,0.9), inset 0 1px 0 rgba(201,168,76,0.15);
     color: var(--text-light);
     font-family: 'Cinzel', serif;
@@ -303,6 +306,20 @@
     margin-bottom: 18px;
     text-transform: uppercase;
   }
+  .modal-close-x {
+    position: absolute;
+    top: 10px; right: 12px;
+    font-size: 20px;
+    color: var(--text-dim);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .modal-close-x:hover, .modal-close-x:active { color: var(--text-light); background: rgba(255,255,255,0.08); }
+  .modal { position: relative; }
   .modal .attacker { color: #8ec6ff; }
   .modal .defender { color: #ffb0b0; }
 
@@ -378,7 +395,7 @@
 
   .color-swatches {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(10, 1fr);
     gap: 8px;
     margin: 12px 0 6px;
   }
@@ -405,14 +422,12 @@
     margin-bottom: 10px;
     text-transform: uppercase;
   }
-  .rgb-preview {
-    width: 100%;
-    height: clamp(28px, 6vw, 36px);
-    border-radius: 6px;
-    border: 2px solid rgba(255,255,255,0.15);
-    margin-bottom: 10px;
-    transition: background 0.1s;
+  .rgb-body {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
   }
+  .rgb-sliders { flex: 1; }
   .rgb-row {
     display: flex;
     align-items: center;
@@ -454,22 +469,34 @@
     text-align: right;
     flex-shrink: 0;
   }
+  .rgb-side {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+    width: clamp(44px, 10vw, 58px);
+  }
+  .rgb-preview {
+    flex: 1;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.15);
+    transition: background 0.1s;
+    min-height: 40px;
+  }
   .btn-apply-rgb {
     width: 100%;
-    padding: clamp(8px, 2vw, 11px);
-    border-radius: 8px;
+    aspect-ratio: 1;
+    border-radius: 6px;
     border: 1px solid rgba(201,168,76,0.35);
     background: rgba(201,168,76,0.12);
     color: var(--gold-light);
-    font-family: 'Cinzel', serif;
-    font-size: clamp(10px, 2.2vw, 12px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    font-size: clamp(18px, 4vw, 24px);
     cursor: pointer;
-    margin-top: 8px;
+    display: flex; align-items: center; justify-content: center;
     transition: background 0.12s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .btn-apply-rgb:active { background: rgba(201,168,76,0.25); }
+  .btn-apply-rgb:active { background: rgba(201,168,76,0.3); }
 
   .modal p {
     text-align: center;
@@ -613,6 +640,10 @@
 <div id="reset-btn" title="Reset game">&#x27F3;</div>
 <div id="history-btn" title="View history">&#x29C9;</div>
 <div id="mode-btn" title="Toggle display mode">&#x2B1B;</div>
+<div id="ping-0" class="ping-btn q0" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
+<div id="ping-1" class="ping-btn q1" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
+<div id="ping-2" class="ping-btn q2" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
+<div id="ping-3" class="ping-btn q3" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
 <canvas id="drag-canvas"></canvas>
 
 <script>
@@ -766,14 +797,16 @@ function doPing(atkIdx, btn) {
   void btn.offsetWidth;
   btn.classList.add('flash');
 
-  // Collate consecutive pings from same attacker within 10 seconds
+  // Collate consecutive pings from same attacker within 4 seconds
   const last = state.history[0];
   const within10s = last && (Date.now() - last.t) < 4000;
   if (last && last.type === 'ping' && last.attacker === atkIdx && within10s) {
     last.count = (last.count || 1) + 1;
     last.t = Date.now();
+    if (targets.some(i => isEliminated(i))) last.elim = true;
   } else {
-    state.history.unshift({ t: Date.now(), type: 'ping', attacker: atkIdx, targets, count: 1 });
+    const elimNow = targets.some(i => isEliminated(i));
+    state.history.unshift({ t: Date.now(), type: 'ping', attacker: atkIdx, targets, count: 1, elim: elimNow });
     if (state.history.length > 10) state.history.length = 10;
   }
   save();
@@ -802,16 +835,6 @@ function buildUI() {
     cb.addEventListener('click', e => { e.stopPropagation(); openColorModal(idx); });
     cb.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); openColorModal(idx); });
     q.appendChild(cb);
-
-    // Ping button — deals 1 damage to all other non-eliminated players
-    const pingBtn = document.createElement('div');
-    pingBtn.className = 'ping-btn ' + (colOnLeft ? 'pr' : 'pl');
-    pingBtn.innerHTML = '&#x26A1;&#x26A1;&#x26A1;';
-    pingBtn.title = 'Ping all others for 1';
-    pingBtn.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    pingBtn.addEventListener('click', e => { e.stopPropagation(); doPing(idx, pingBtn); });
-    pingBtn.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); doPing(idx, pingBtn); });
-    q.appendChild(pingBtn);
 
     const eo = document.createElement('div');
     eo.className = 'eliminated-overlay';
@@ -853,6 +876,7 @@ function buildUI() {
     const lifeEl = document.createElement('div');
     lifeEl.className = 'life-total' + (p.life <= 5 && p.life > 0 ? ' low' : '') + (isEliminated(idx) ? ' dead' : '');
     lifeEl.textContent = p.life;
+    lifeEl.style.minWidth = Math.abs(p.life) >= 100 ? '3ch' : '2.2ch';
 
     const plusBtn = document.createElement('button');
     plusBtn.className = 'life-btn';
@@ -897,6 +921,8 @@ function updateLife(idx) {
   el.className = 'life-total' +
     (p.life <= 5 && p.life > 0 && !elim ? ' low' : '') +
     (elim ? ' dead' : '');
+  // Fix width to widest 2-digit size, expanding only for 3+ digits
+  el.style.minWidth = Math.abs(p.life) >= 100 ? '3ch' : '2.2ch';
   if (elim) {
     q.classList.add('dead');
     if (!wasDeadBefore) triggerElimAnimation(idx);
@@ -925,6 +951,7 @@ function changeLife(idx, delta) {
   const before = state.players[idx].life;
   state.players[idx].life += delta;
   addHistory({ type: 'life', player: idx, delta, before, after: state.players[idx].life });
+  if (isEliminated(idx)) state.history[0].elim = true;
   updateLife(idx);
   save();
 }
@@ -1193,10 +1220,41 @@ function openCmdModal(atkIdx, defIdx) {
   c1btn.addEventListener('touchend', e => { e.preventDefault(); selectSlot(0); });
   c2btn.addEventListener('touchend', e => { e.preventDefault(); selectSlot(1); });
 
-  m.querySelector('#cmd-minus').addEventListener('click', () => { if (val > 0) { val--; valEl.textContent = val; } });
-  m.querySelector('#cmd-plus').addEventListener('click', () => { val++; valEl.textContent = val; });
-  m.querySelector('#cmd-minus').addEventListener('touchend', e => { e.preventDefault(); if (val > 0) { val--; valEl.textContent = val; } });
-  m.querySelector('#cmd-plus').addEventListener('touchend', e => { e.preventDefault(); val++; valEl.textContent = val; });
+  function addCmdBtnListeners(btn, dir) {
+    let longTimer = null;
+    let didLong = false;
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      didLong = false;
+      longTimer = setTimeout(() => {
+        didLong = true;
+        val = Math.max(0, val + dir * 10);
+        valEl.textContent = val;
+      }, LIFE_BTN_LONG_MS);
+    }, { passive: false });
+    btn.addEventListener('touchend', e => {
+      e.preventDefault();
+      clearTimeout(longTimer);
+      if (!didLong) { val = Math.max(0, val + dir); valEl.textContent = val; }
+    });
+    btn.addEventListener('mousedown', () => {
+      didLong = false;
+      longTimer = setTimeout(() => {
+        didLong = true;
+        val = Math.max(0, val + dir * 10);
+        valEl.textContent = val;
+      }, LIFE_BTN_LONG_MS);
+    });
+    btn.addEventListener('mouseup', () => {
+      clearTimeout(longTimer);
+      if (!didLong) { val = Math.max(0, val + dir); valEl.textContent = val; }
+    });
+    btn.addEventListener('mouseleave', () => { clearTimeout(longTimer); didLong = true; });
+    btn.addEventListener('click', e => e.stopPropagation());
+  }
+
+  addCmdBtnListeners(m.querySelector('#cmd-minus'), -1);
+  addCmdBtnListeners(m.querySelector('#cmd-plus'),  +1);
   m.querySelector('#cmd-cancel').addEventListener('click', closeModal);
   m.querySelector('#cmd-cancel').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
 
@@ -1206,6 +1264,7 @@ function openCmdModal(atkIdx, defIdx) {
       state.players[defIdx].cmdDmg[atkIdx][cmdSlot] += val;
       const totalNow = state.players[defIdx].cmdDmg[atkIdx][cmdSlot];
       addHistory({ type: 'cmd', attacker: atkIdx, defender: defIdx, cmdSlot, amount: val, totalNow });
+      if (isEliminated(defIdx)) state.history[0].elim = true;
       updateLife(defIdx);
       updateAllBadges();
       save();
@@ -1250,20 +1309,28 @@ function openColorModal(idx) {
   const m = document.createElement('div');
   m.className = 'modal';
   m.innerHTML =
+    '<span class="modal-close-x" id="col-close">&times;</span>' +
     '<h2>Choose Colour</h2>' +
     '<div class="color-swatches" id="swatches"></div>' +
     '<div class="rgb-section">' +
       '<h3>Custom Colour</h3>' +
-      '<div class="rgb-preview" id="rgb-preview"></div>' +
-      '<div class="rgb-row"><span class="rgb-label r">R</span><input class="rgb-slider r" id="sl-r" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vr">100</span></div>' +
-      '<div class="rgb-row"><span class="rgb-label g">G</span><input class="rgb-slider g" id="sl-g" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vg">100</span></div>' +
-      '<div class="rgb-row"><span class="rgb-label b">B</span><input class="rgb-slider b" id="sl-b" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vb">100</span></div>' +
-      '<button class="btn-apply-rgb" id="apply-rgb">Apply Custom Colour</button>' +
-    '</div>' +
-    '<div class="modal-btns" style="margin-top:12px"><button class="btn-cancel" id="col-cancel">Cancel</button></div>';
+      '<div class="rgb-body">' +
+        '<div class="rgb-sliders">' +
+          '<div class="rgb-row"><span class="rgb-label r">R</span><input class="rgb-slider r" id="sl-r" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vr">100</span></div>' +
+          '<div class="rgb-row"><span class="rgb-label g">G</span><input class="rgb-slider g" id="sl-g" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vg">100</span></div>' +
+          '<div class="rgb-row"><span class="rgb-label b">B</span><input class="rgb-slider b" id="sl-b" type="range" min="0" max="255" value="100"><span class="rgb-val" id="vb">100</span></div>' +
+        '</div>' +
+        '<div class="rgb-side">' +
+          '<div class="rgb-preview" id="rgb-preview"></div>' +
+          '<button class="btn-apply-rgb" id="apply-rgb" title="Apply">\u2713</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   bd.appendChild(m);
 
-  // Swatches
+  m.querySelector('#col-close').addEventListener('click', closeModal);
+  m.querySelector('#col-close').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
+
   const sw = m.querySelector('#swatches');
   PALETTE.forEach(col => {
     const s = document.createElement('div');
@@ -1275,12 +1342,10 @@ function openColorModal(idx) {
     sw.appendChild(s);
   });
 
-  // RGB sliders
   const slR = m.querySelector('#sl-r'), slG = m.querySelector('#sl-g'), slB = m.querySelector('#sl-b');
   const vR  = m.querySelector('#vr'),  vG  = m.querySelector('#vg'),  vB  = m.querySelector('#vb');
   const preview = m.querySelector('#rgb-preview');
 
-  // Seed sliders from current colour if possible
   const cur = state.players[idx].color;
   const hex = cur.replace('#','');
   if (hex.length === 6) {
@@ -1301,28 +1366,16 @@ function openColorModal(idx) {
     sl.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
   });
 
-  m.querySelector('#apply-rgb').addEventListener('click', () => {
+  const applyRgb = () => {
     const r = parseInt(slR.value).toString(16).padStart(2,'0');
     const g = parseInt(slG.value).toString(16).padStart(2,'0');
     const b = parseInt(slB.value).toString(16).padStart(2,'0');
-    const col = '#' + r + g + b;
-    state.players[idx].color = col;
-    quarters[idx].style.backgroundColor = col;
+    state.players[idx].color = '#' + r + g + b;
+    quarters[idx].style.backgroundColor = state.players[idx].color;
     save(); closeModal();
-  });
-  m.querySelector('#apply-rgb').addEventListener('touchend', e => {
-    e.preventDefault();
-    const r = parseInt(slR.value).toString(16).padStart(2,'0');
-    const g = parseInt(slG.value).toString(16).padStart(2,'0');
-    const b = parseInt(slB.value).toString(16).padStart(2,'0');
-    const col = '#' + r + g + b;
-    state.players[idx].color = col;
-    quarters[idx].style.backgroundColor = col;
-    save(); closeModal();
-  });
-
-  m.querySelector('#col-cancel').addEventListener('click', closeModal);
-  m.querySelector('#col-cancel').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
+  };
+  m.querySelector('#apply-rgb').addEventListener('click', applyRgb);
+  m.querySelector('#apply-rgb').addEventListener('touchend', e => { e.preventDefault(); applyRgb(); });
 }
 
 resetBtn.addEventListener('click', openResetModal);
@@ -1341,33 +1394,19 @@ function applyDisplayMode() {
     document.getElementById('mode-btn').textContent = '\u2B1B';
   }
 
-  // Reassign button corners based on mode.
-  // In mobile mode, top quarters are rotated 180deg so their local top-left
-  // appears at the bottom-right on screen. In desktop mode all quarters are
-  // unrotated, so we want all colour buttons on the physically outer corners
-  // and all ping buttons on the inner corners (near centre), matching the
-  // same visual intent in both modes.
-  //
-  // Mobile:  players 0,3 → colOnLeft=true  (colour tl, ping pr)
-  //          players 1,2 → colOnLeft=false (colour tr, ping pl)
-  // Desktop: top players (0,1) are no longer rotated, so we flip their logic.
-  //          players 0,1 → colOnLeft=true  (colour tl, ping pr)
-  //          players 2,3 → colOnLeft=false (colour tr, ping pl)
+  // Only top row players (0 & 1) need their colour button corner swapped
+  // when switching modes, because they're the ones that rotate.
+  // Bottom row players (2 & 3) never rotate, so their buttons never move.
   quarters.forEach((q, idx) => {
-    const cb   = q.querySelector('.color-btn');
-    const pb   = q.querySelector('.ping-btn');
-    if (!cb || !pb) return;
-
-    let colOnLeft;
-    if (state.desktopMode) {
-      colOnLeft = (idx === 0 || idx === 1);
-      cb.className = 'color-btn ' + (colOnLeft ? 'tl' : 'tr');
-      pb.className = 'ping-btn pb';
-    } else {
-      colOnLeft = (idx === 1 || idx === 2);
-      cb.className = 'color-btn ' + (colOnLeft ? 'tl' : 'tr');
-      pb.className = 'ping-btn ' + (colOnLeft ? 'pr' : 'pl');
-    }
+    if (idx > 1) return; // bottom row unchanged
+    const cb = q.querySelector('.color-btn');
+    if (!cb) return;
+    // Mobile: top players are rotated 180°, so tl/tr are visually swapped
+    // Desktop: unrotated, so tl means physically top-left
+    // Player 0: mobile=tr, desktop=tl
+    // Player 1: mobile=tl, desktop=tr
+    const colOnLeft = state.desktopMode ? (idx === 0) : (idx === 1);
+    cb.className = 'color-btn ' + (colOnLeft ? 'tl' : 'tr');
   });
 }
 
@@ -1386,57 +1425,116 @@ function formatTime(ts) {
   return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
 }
 
+function undoLastAction() {
+  if (state.history.length === 0) return;
+  const h = state.history[0];
+
+  if (h.type === 'life') {
+    state.players[h.player].life -= h.delta; // reverse the delta
+    updateLife(h.player);
+    // Clear skull if player is no longer eliminated after undo
+    if (!isEliminated(h.player)) {
+      const q = quarters[h.player];
+      q.classList.remove('dead');
+      const skull = q.querySelector('.skull-overlay');
+      if (skull) skull.className = 'skull-overlay';
+    }
+  } else if (h.type === 'cmd') {
+    state.players[h.defender].life += h.amount;
+    state.players[h.defender].cmdDmg[h.attacker][h.cmdSlot] -= h.amount;
+    updateLife(h.defender);
+    updateAllBadges();
+    if (!isEliminated(h.defender)) {
+      const q = quarters[h.defender];
+      q.classList.remove('dead');
+      const skull = q.querySelector('.skull-overlay');
+      if (skull) skull.className = 'skull-overlay';
+    }
+  } else if (h.type === 'ping') {
+    const count = h.count || 1;
+    (h.targets || []).forEach(i => {
+      state.players[i].life += count;
+      updateLife(i);
+      if (!isEliminated(i)) {
+        const q = quarters[i];
+        q.classList.remove('dead');
+        const skull = q.querySelector('.skull-overlay');
+        if (skull) skull.className = 'skull-overlay';
+      }
+    });
+  }
+
+  state.history.shift(); // remove the undone entry
+  save();
+}
+
 function openHistoryModal() {
   const bd = createBackdrop();
   const m = document.createElement('div');
   m.className = 'modal';
 
-  let rows = '';
-  if (state.history.length === 0) {
-    rows = '<div class="hist-empty">No events yet this game.</div>';
-  } else {
-    rows = '<ul class="history-list">';
-    state.history.forEach(h => {
-      const time = formatTime(h.t);
-      if (h.type === 'life') {
-        const pname = state.players[h.player].name;
-        const sign = h.delta > 0 ? '+' : '';
-        const cls = h.delta > 0 ? 'hist-delta-pos' : 'hist-delta-neg';
-        rows += '<li>' +
-          '<span class="hist-icon">' + (h.delta > 0 ? '\u2665' : '\u2620') + '</span>' +
-          '<span class="hist-text"><b>' + pname + '</b> life <span class="' + cls + '">' + sign + h.delta + '</span> &rarr; ' + h.after + '</span>' +
-          '<span class="hist-time">' + time + '</span></li>';
-      } else if (h.type === 'cmd') {
-        const atk = state.players[h.attacker].name;
-        const def = state.players[h.defender].name;
-        const cLabel = h.cmdSlot === 1 ? ' C2' : ' C1';
-        rows += '<li>' +
-          '<span class="hist-icon">\u2694</span>' +
-          '<span class="hist-text"><b>' + atk + cLabel + '</b> \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(cmd total: ' + h.totalNow + ')</span></span>' +
-          '<span class="hist-time">' + time + '</span></li>';
-      } else if (h.type === 'ping') {
-        const atk = state.players[h.attacker].name;
-        const tnames = (h.targets || []).map(i => state.players[i].name).join(', ');
-        const count = h.count || 1;
-        const dmg = count > 1 ? '\u2212' + count : '\u22121';
-        const times = count > 1 ? ' \u00d7' + count : '';
-        rows += '<li>' +
-          '<span class="hist-icon">&#x26A1;</span>' +
-          '<span class="hist-text"><b>' + atk + '</b> pinged' + times + ' <span class="hist-delta-neg">' + dmg + '</span> \u2192 ' + tnames + '</span>' +
-          '<span class="hist-time">' + time + '</span></li>';
-      }
-    });
-    rows += '</ul>';
+  function renderModal() {
+    let rows = '';
+    if (state.history.length === 0) {
+      rows = '<div class="hist-empty">No events yet this game.</div>';
+    } else {
+      rows = '<ul class="history-list">';
+      state.history.forEach(h => {
+        const time = formatTime(h.t);
+        if (h.type === 'life') {
+          const pname = state.players[h.player].name;
+          const sign = h.delta > 0 ? '+' : '';
+          const cls = h.delta > 0 ? 'hist-delta-pos' : 'hist-delta-neg';
+          const elimTag = h.elim ? ' <span style="color:#ff8080;font-size:0.9em;">\u2620 Eliminated</span>' : '';
+          rows += '<li>' +
+            '<span class="hist-icon">' + (h.delta > 0 ? '\u2665' : '\u2620') + '</span>' +
+            '<span class="hist-text"><b>' + pname + '</b> life <span class="' + cls + '">' + sign + h.delta + '</span> &rarr; ' + h.after + elimTag + '</span>' +
+            '<span class="hist-time">' + time + '</span></li>';
+        } else if (h.type === 'cmd') {
+          const atk = state.players[h.attacker].name;
+          const def = state.players[h.defender].name;
+          const cLabel = h.cmdSlot === 1 ? ' C2' : ' C1';
+          const elimTag = h.elim ? ' <span style="color:#ff8080;font-size:0.9em;">\u2620 Eliminated</span>' : '';
+          rows += '<li>' +
+            '<span class="hist-icon">\u2694</span>' +
+            '<span class="hist-text"><b>' + atk + cLabel + '</b> \u2192 <b>' + def + '</b> <span class="hist-delta-neg">\u2212' + h.amount + '</span> life <span style="color:var(--text-dim);font-size:0.9em;">(cmd total: ' + h.totalNow + ')</span>' + elimTag + '</span>' +
+            '<span class="hist-time">' + time + '</span></li>';
+        } else if (h.type === 'ping') {
+          const atk = state.players[h.attacker].name;
+          const tnames = (h.targets || []).map(i => state.players[i].name).join(', ');
+          const count = h.count || 1;
+          const dmg = count > 1 ? '\u2212' + count : '\u22121';
+          const times = count > 1 ? ' \u00d7' + count : '';
+          const elimTag = h.elim ? ' <span style="color:#ff8080;font-size:0.9em;">\u2620 Eliminated</span>' : '';
+          rows += '<li>' +
+            '<span class="hist-icon">&#x26A1;</span>' +
+            '<span class="hist-text"><b>' + atk + '</b> pinged' + times + ' <span class="hist-delta-neg">' + dmg + '</span> \u2192 ' + tnames + elimTag + '</span>' +
+            '<span class="hist-time">' + time + '</span></li>';
+        }
+      });
+      rows += '</ul>';
+    }
+
+    const hasHistory = state.history.length > 0;
+    m.innerHTML =
+      '<h2>Recent History</h2>' +
+      '<p style="text-align:center;font-size:clamp(9px,2vw,11px);color:var(--text-dim);margin-bottom:8px;letter-spacing:0.06em;">(Most recent at the top)</p>' +
+      rows +
+      '<div class="modal-btns">' +
+      (hasHistory ? '<button class="btn-cancel" id="hist-undo" style="background:linear-gradient(135deg,#2a1a3a,#1a0a2a);color:#d0a0ff;border:1px solid rgba(160,80,255,0.35)!important;">&#x21A9; Undo</button>' : '') +
+      '<button class="btn-cancel" id="hist-close">Close</button>' +
+      '</div>';
+
+    if (hasHistory) {
+      m.querySelector('#hist-undo').addEventListener('click', () => { undoLastAction(); renderModal(); });
+      m.querySelector('#hist-undo').addEventListener('touchend', e => { e.preventDefault(); undoLastAction(); renderModal(); });
+    }
+    m.querySelector('#hist-close').addEventListener('click', closeModal);
+    m.querySelector('#hist-close').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
   }
 
-  m.innerHTML =
-    '<h2>Recent History</h2>' +
-    '<p style="text-align:center;font-size:clamp(9px,2vw,11px);color:var(--text-dim);margin-bottom:8px;letter-spacing:0.06em;">(Most recent at the top)</p>' +
-    rows +
-    '<div class="modal-btns"><button class="btn-cancel" id="hist-close">Close</button></div>';
   bd.appendChild(m);
-  m.querySelector('#hist-close').addEventListener('click', closeModal);
-  m.querySelector('#hist-close').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
+  renderModal();
 }
 
 function openResetModal() {
@@ -1527,6 +1625,14 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(swURL, { scope: '/' })
     .catch(() => {}); // silently ignore if blocked
 }
+
+// Wire up fixed ping buttons
+[0,1,2,3].forEach(idx => {
+  const btn = document.getElementById('ping-' + idx);
+  const handler = () => doPing(idx, btn);
+  btn.addEventListener('click', handler);
+  btn.addEventListener('touchend', e => { e.preventDefault(); handler(); });
+});
 
 buildUI();
 </script>
