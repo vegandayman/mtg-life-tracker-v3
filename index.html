@@ -221,7 +221,7 @@
     100% { background: rgba(10,10,10,0.9);    transform: scale(1); }
   }
 
-  #reset-btn, #history-btn, #mode-btn {
+  #reset-btn, #history-btn, #mode-btn, #decks-btn {
     position: fixed;
     z-index: 20;
     border-radius: 50%;
@@ -253,6 +253,312 @@
     opacity: 0.8;
   }
   #history-btn:active { background: rgba(40,30,10,0.95); transform: translateX(-50%) scale(0.92); }
+  #decks-btn {
+    top: 50%;
+    left: calc(50% + clamp(30px, 7vw, 44px));
+    transform: translateY(-50%);
+    width: clamp(28px, 6vw, 38px);
+    height: clamp(28px, 6vw, 38px);
+    font-size: clamp(12px, 2.8vw, 16px);
+    border-color: rgba(201,168,76,0.35);
+    opacity: 0.9;
+  }
+  #decks-btn:active { background: rgba(40,30,10,0.95); transform: translateY(-50%) scale(0.92); }
+
+  .deck-card {
+    margin: 10px 0 14px;
+    padding: 10px;
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.24);
+  }
+  .deck-card h3 {
+    font-size: clamp(11px, 2.6vw, 14px);
+    letter-spacing: 0.14em;
+    color: var(--gold-light);
+    text-align: center;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .deck-current {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 8px 0;
+  }
+  .deck-img {
+    width: clamp(74px, 20vw, 120px);
+    border-radius: 7px;
+    border: 1px solid rgba(201,168,76,0.25);
+    background: rgba(0,0,0,0.45);
+    flex-shrink: 0;
+  }
+  .deck-info { flex: 1; min-width: 0; }
+  .deck-title {
+    color: var(--text-light);
+    font-size: clamp(12px, 3vw, 16px);
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .deck-type {
+    color: var(--gold);
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  .deck-text {
+    white-space: pre-wrap;
+    color: rgba(255,255,255,0.78);
+    font-size: clamp(10px, 2.25vw, 12px);
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  .deck-meta {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.06em;
+    margin: 6px 0;
+  }
+  .deck-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .deck-actions button {
+    padding: 8px 6px;
+    border-radius: 7px;
+    border: 1px solid rgba(201,168,76,0.28);
+    background: rgba(201,168,76,0.10);
+    color: var(--gold-light);
+    font-family: 'Cinzel', serif;
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .deck-actions button:active { background: rgba(201,168,76,0.24); transform: scale(0.96); }
+  .deck-actions button:disabled { opacity: 0.45; cursor: default; }
+
+  /* Main-screen shared deck drawers for Planechase / Archenemy */
+  #special-card-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 28; /* above centre controls (z-index 20), below modals (z-index 30) */
+    pointer-events: none;
+  }
+  .special-drawer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.34s cubic-bezier(0.22,1,0.36,1), opacity 0.24s ease;
+  }
+  .special-drawer.planechase { top: 2px; }
+  .special-drawer.archenemy  { bottom: 2px; }
+  .special-drawer.collapsed.planechase { transform: translateX(-50%) translateY(calc(-100% + 28px)); }
+  .special-drawer.collapsed.archenemy  { transform: translateX(-50%) translateY(calc(100% - 28px)); }
+
+  .special-drawer-tab {
+    pointer-events: auto;
+    min-width: 132px;
+    max-width: 78vw;
+    padding: 5px 13px;
+    border: 1px solid rgba(201,168,76,0.65);
+    background: rgba(10,10,10,0.94);
+    color: var(--gold-light);
+    font-family: 'Cinzel', serif;
+    font-size: clamp(8px, 1.7vw, 12px);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.72), 0 0 12px rgba(201,168,76,0.18);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .special-drawer.planechase .special-drawer-tab {
+    border-radius: 0 0 12px 12px;
+    border-top: none;
+  }
+  .special-drawer.archenemy .special-drawer-tab {
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+  }
+  .special-drawer-tab:active { background: rgba(201,168,76,0.18); }
+
+  .special-peek-card {
+    pointer-events: auto;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid rgba(201,168,76,0.78);
+    background: rgba(10,10,10,0.99);
+    box-shadow: 0 18px 70px rgba(0,0,0,0.92), 0 0 30px rgba(201,168,76,0.26);
+    opacity: 0.995;
+    position: relative;
+  }
+  .special-peek-card.planechase {
+    width: min(57vw, calc(35vh * 1.393), 500px);
+    max-width: 92vw;
+  }
+  .special-peek-card.archenemy {
+    width: min(28vw, calc(37vh * 0.717), 260px);
+    max-width: 70vw;
+  }
+  #special-card-overlay.count-1 .special-peek-card.planechase {
+    width: min(63vw, calc(41vh * 1.393), 550px);
+  }
+  #special-card-overlay.count-1 .special-peek-card.archenemy {
+    width: min(33vw, calc(44vh * 0.717), 305px);
+    max-width: 76vw;
+  }
+  .special-peek-image-frame {
+    position: relative;
+    width: 100%;
+    background: rgba(0,0,0,0.72);
+    overflow: hidden;
+    cursor: zoom-in;
+  }
+  .special-peek-card.archenemy .special-peek-image-frame { aspect-ratio: 488 / 680; }
+  .special-peek-card.planechase .special-peek-image-frame { aspect-ratio: 680 / 488; }
+  .special-peek-card img { display: block; }
+  .special-peek-card.archenemy img {
+    width: 100%; height: 100%; object-fit: contain;
+  }
+  .special-peek-card.planechase img {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 72%; height: auto;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+  .special-peek-fallback {
+    aspect-ratio: 5 / 7;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 14px;
+    color: var(--gold-light);
+    font-size: clamp(13px, 2.6vw, 18px);
+    line-height: 1.35;
+    background: radial-gradient(ellipse at center, rgba(201,168,76,0.16), rgba(0,0,0,0.78));
+  }
+  .special-peek-label {
+    padding: 7px 9px 8px;
+    text-align: center;
+    color: var(--gold-light);
+    font-size: clamp(8px, 1.7vw, 12px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.88);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .special-peek-actions {
+    position: absolute;
+    inset: auto 7px 7px 7px;
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    pointer-events: none;
+  }
+  .special-peek-card:hover .special-peek-actions,
+  .special-peek-card.show-actions .special-peek-actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .special-action-btn {
+    border-radius: 999px;
+    border: 1px solid rgba(201,168,76,0.65);
+    background: rgba(0,0,0,0.86);
+    color: var(--gold-light);
+    padding: 6px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: clamp(9px, 1.8vw, 12px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.65);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .special-action-btn:active { transform: scale(0.94); background: rgba(201,168,76,0.22); }
+
+  .special-full-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    width: min(92vw, 980px);
+    max-height: 78vh;
+    overflow: hidden;
+  }
+  .special-full-img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    flex: 0 1 auto;
+  }
+  .special-full-card img {
+    display: block;
+    max-width: 100%;
+    max-height: 56vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 12px 42px rgba(0,0,0,0.82);
+  }
+  .special-full-card.planechase .special-full-img-wrap {
+    width: min(88vw, 760px);
+    aspect-ratio: 680 / 488;
+    position: relative;
+  }
+  .special-full-card.planechase img {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 72%; height: auto;
+    max-height: none;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .special-full-info {
+    color: var(--text-light);
+    line-height: 1.45;
+    width: min(88vw, 760px);
+    max-height: 22vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .special-full-info h3 {
+    color: var(--gold-light);
+    font-size: clamp(16px, 4vw, 24px);
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+  }
+  .special-full-type {
+    color: var(--text-dim);
+    font-size: clamp(11px, 2.3vw, 14px);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+  .special-full-text {
+    white-space: pre-wrap;
+    font-size: clamp(12px, 2.6vw, 16px);
+  }
+  @media (max-width: 700px) {
+    .special-full-card { max-height: 80vh; }
+    .special-full-card img { max-height: 52vh; }
+    .special-full-info { max-height: 24vh; overflow-y: auto; }
+    .special-peek-card.planechase { width: min(78vw, calc(28vh * 1.393), 460px); }
+    .special-peek-card.archenemy { width: min(39vw, calc(31vh * 0.717), 220px); }
+  }
+
   #mode-btn {
     top: calc(50% - clamp(30px, 7vw, 44px) - clamp(28px, 6vw, 38px) - 4px);
     left: 50%;
@@ -264,6 +570,7 @@
     opacity: 0.8;
   }
   #mode-btn:active { background: rgba(40,30,10,0.95); transform: translateX(-50%) scale(0.92); }
+
 
   /* Desktop mode: all quarters same orientation */
   #app.desktop-mode .quarter.top { transform: none; }
@@ -746,18 +1053,145 @@
     z-index: 4;
     pointer-events: none;
   }
+
+
+  /* Match summary */
+  .summary-modal {
+    width: min(92vw, 760px);
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .summary-hero {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .summary-card {
+    background: rgba(0,0,0,0.36);
+    border: 1px solid rgba(201,168,76,0.22);
+    border-radius: 8px;
+    padding: 9px 10px;
+    text-align: center;
+  }
+  .summary-card .label {
+    display: block;
+    font-size: clamp(8px, 1.7vw, 10px);
+    color: var(--text-dim);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .summary-card .value {
+    display: block;
+    font-size: clamp(13px, 3vw, 18px);
+    color: var(--gold-light);
+    line-height: 1.25;
+  }
+  .life-chart-wrap {
+    background: rgba(0,0,0,0.34);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 10px;
+    padding: 8px;
+    margin: 10px 0 12px;
+  }
+  .life-chart-wrap svg {
+    display: block;
+    width: 100%;
+    height: clamp(230px, 44vh, 360px);
+  }
+  .life-chart-legend {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 10px;
+    margin-top: 8px;
+  }
+  .life-chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: var(--text-light);
+    font-size: clamp(10px, 2.1vw, 13px);
+    letter-spacing: 0.04em;
+  }
+  .life-chart-swatch {
+    width: 22px;
+    height: 4px;
+    border-radius: 999px;
+    box-shadow: 0 0 8px rgba(255,255,255,0.25);
+    flex-shrink: 0;
+  }
+  .life-chart-legend-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .summary-section-title {
+    font-size: clamp(10px, 2.2vw, 13px);
+    color: var(--gold-light);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin: 12px 0 8px;
+    text-align: center;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: clamp(10px, 2.2vw, 13px);
+    background: rgba(0,0,0,0.24);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .summary-table th, .summary-table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid rgba(201,168,76,0.10);
+    text-align: left;
+  }
+  .summary-table th {
+    color: var(--gold-light);
+    font-size: clamp(8px, 1.8vw, 10px);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(201,168,76,0.08);
+  }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-highlight-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 0 0 12px;
+  }
+  .summary-highlight-list li {
+    background: rgba(0,0,0,0.26);
+    border: 1px solid rgba(201,168,76,0.14);
+    border-radius: 8px;
+    padding: 8px 9px;
+    color: var(--text-light);
+    font-size: clamp(10px, 2.2vw, 13px);
+    line-height: 1.35;
+  }
+  @media (max-width: 560px) {
+    .summary-hero { grid-template-columns: 1fr; }
+    .summary-highlight-list { grid-template-columns: 1fr; }
+    .summary-table th, .summary-table td { padding: 6px 5px; }
+  }
+
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="reset-btn" title="Reset game">&#x27F3;</div>
 <div id="history-btn" title="View history">&#x29C9;</div>
+<div id="decks-btn" title="Planechase / Archenemy decks">&#x1F0CF;</div>
 <div id="mode-btn" title="Toggle display mode">&#x2B1B;</div>
 <div id="ping-0" class="ping-btn q0" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
 <div id="ping-1" class="ping-btn q1" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
 <div id="ping-2" class="ping-btn q2" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
 <div id="ping-3" class="ping-btn q3" title="Ping others for 1">&#x26A1;&#x26A1;&#x26A1;</div>
 <canvas id="drag-canvas"></canvas>
+<div id="special-card-overlay" aria-hidden="true"></div>
 
 <script>
 const NAMES  = ['Player 1','Player 2','Player 3','Player 4'];
@@ -777,8 +1211,80 @@ let state = {
     artVisible: true,
   })),
   history: [],
+  matchStats: createNewMatchStats(),
   desktopMode: false,
+  specialDecks: {
+    planechase: { enabled: false, deck: [], discard: [], current: null, loading: false, error: '', drawerOpen: false },
+    archenemy:  { enabled: false, deck: [], discard: [], current: null, loading: false, error: '', drawerOpen: false },
+  },
 };
+
+
+function createNewMatchStats() {
+  return {
+    startedAt: Date.now(),
+    lifeSeries: [{ t: Date.now(), life: [START_LIFE, START_LIFE, START_LIFE, START_LIFE] }],
+    events: []
+  };
+}
+
+function ensureMatchStats() {
+  if (!state.matchStats) state.matchStats = createNewMatchStats();
+  if (!Array.isArray(state.matchStats.lifeSeries) || state.matchStats.lifeSeries.length === 0) {
+    state.matchStats.lifeSeries = [{ t: state.matchStats.startedAt || Date.now(), life: state.players.map(p => p.life) }];
+  }
+  if (!Array.isArray(state.matchStats.events)) state.matchStats.events = [];
+  if (!state.matchStats.startedAt) state.matchStats.startedAt = state.matchStats.lifeSeries[0].t || Date.now();
+}
+
+function recordMatchEvent(event, includeSnapshot = true) {
+  ensureMatchStats();
+  const t = Date.now();
+  state.matchStats.events.push({ t, ...event });
+  if (includeSnapshot) {
+    state.matchStats.lifeSeries.push({ t, life: state.players.map(p => p.life) });
+  }
+}
+
+function removeLastMatchEventsForHistory(h) {
+  ensureMatchStats();
+  const events = state.matchStats.events;
+  if (!events.length) return;
+
+  let removeCount = 0;
+  if (h.type === 'life') {
+    let remaining = Math.abs(h.delta);
+    const sign = h.delta > 0 ? 1 : -1;
+    for (let i = events.length - 1; i >= 0 && remaining > 0; i--) {
+      const ev = events[i];
+      if (ev.type !== 'life' || ev.player !== h.player || Math.sign(ev.delta) !== sign) break;
+      remaining -= Math.abs(ev.delta);
+      removeCount++;
+    }
+  } else if (h.type === 'cmd') {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if (ev.type === 'cmd' && ev.attacker === h.attacker && ev.defender === h.defender && ev.amount === h.amount) { removeCount = events.length - i; break; }
+      if (ev.type === 'life' || ev.type === 'cmd' || ev.type === 'ping') break;
+    }
+  } else if (h.type === 'ping') {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if (ev.type === 'ping' && ev.attacker === h.attacker) { removeCount = events.length - i; break; }
+      if (ev.type === 'life' || ev.type === 'cmd' || ev.type === 'ping') break;
+    }
+  }
+
+  if (removeCount > 0) {
+    events.splice(events.length - removeCount, removeCount);
+    state.matchStats.lifeSeries.splice(Math.max(1, state.matchStats.lifeSeries.length - removeCount), removeCount);
+  }
+  state.matchStats.lifeSeries.push({ t: Date.now(), life: state.players.map(p => p.life) });
+}
+
+function escHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function addHistory(entry) {
   if (entry.type === 'life' && state.history.length > 0) {
@@ -828,7 +1334,25 @@ function load() {
     if (s) {
       state = JSON.parse(s);
       if (!state.history) state.history = [];
+      ensureMatchStats();
       if (state.desktopMode === undefined) state.desktopMode = false;
+      if (!state.specialDecks) {
+        state.specialDecks = {
+          planechase: { enabled: false, deck: [], discard: [], current: null, loading: false, error: '', drawerOpen: false },
+          archenemy:  { enabled: false, deck: [], discard: [], current: null, loading: false, error: '', drawerOpen: false },
+        };
+      }
+      ['planechase','archenemy'].forEach(mode => {
+        if (!state.specialDecks[mode]) state.specialDecks[mode] = { enabled: false, deck: [], discard: [], current: null, loading: false, error: '', drawerOpen: false };
+        const d = state.specialDecks[mode];
+        if (!Array.isArray(d.deck)) d.deck = [];
+        if (!Array.isArray(d.discard)) d.discard = [];
+        if (d.current === undefined) d.current = null;
+        if (d.enabled === undefined) d.enabled = false;
+        d.loading = false;
+        d.error = d.error || '';
+        if (d.drawerOpen === undefined) d.drawerOpen = false;
+      });
       // Migrate old flat cmdDmg [0,0,0,0] to new 2D format [[0,0],...]
       state.players.forEach(p => {
         if (typeof p.cmdDmg[0] === 'number') {
@@ -932,6 +1456,7 @@ function doPing(atkIdx, btn) {
     state.history.unshift({ t: Date.now(), type: 'ping', attacker: atkIdx, targets, count: 1, elim: elimNow });
     if (state.history.length > 10) state.history.length = 10;
   }
+  recordMatchEvent({ type: 'ping', attacker: atkIdx, targets: targets.slice(), count: 1 });
   save();
 }
 
@@ -1088,6 +1613,7 @@ function changeLife(idx, delta) {
   const before = state.players[idx].life;
   state.players[idx].life += delta;
   addHistory({ type: 'life', player: idx, delta, before, after: state.players[idx].life });
+  recordMatchEvent({ type: 'life', player: idx, delta, before, after: state.players[idx].life });
   if (isEliminated(idx)) state.history[0].elim = true;
   updateLife(idx);
   save();
@@ -1410,6 +1936,7 @@ function openCmdModal(atkIdx, defIdx) {
       state.players[defIdx].cmdDmg[atkIdx][cmdSlot] += val;
       const totalNow = state.players[defIdx].cmdDmg[atkIdx][cmdSlot];
       addHistory({ type: 'cmd', attacker: atkIdx, defender: defIdx, cmdSlot, cmdName: cmdName(), amount: val, totalNow });
+      recordMatchEvent({ type: 'cmd', attacker: atkIdx, defender: defIdx, cmdSlot, cmdName: cmdName(), amount: val, totalNow, before: state.players[defIdx].life + val, after: state.players[defIdx].life });
       if (isEliminated(defIdx)) state.history[0].elim = true;
       updateLife(defIdx);
       updateAllBadges();
@@ -1569,6 +2096,7 @@ function openNameModal(idx) {
     state.players[idx].artUrl2  = url2;
     save();
     buildUI();
+updateSpecialDeckOverlay();
     closeModal();
   };
 
@@ -1653,12 +2181,377 @@ function openColorModal(idx) {
   m.querySelector('#apply-rgb').addEventListener('touchend', e => { e.preventDefault(); applyRgb(); });
 }
 
+
+const SPECIAL_DECK_CONFIG = {
+  planechase: {
+    label: 'Planechase',
+    query: 't:plane or t:phenomenon',
+    emptyText: 'Load all Plane and Phenomenon cards from Scryfall, then reveal the first plane.',
+    revealText: 'Reveal Plane',
+    nextText: 'Next Plane'
+  },
+  archenemy: {
+    label: 'Archenemy',
+    query: 't:scheme',
+    emptyText: 'Load all Scheme cards from Scryfall, then reveal the first scheme.',
+    revealText: 'Reveal Scheme',
+    nextText: 'Next Scheme'
+  }
+};
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function normalizeScryfallCard(c) {
+  const img = (c.image_uris && (c.image_uris.large || c.image_uris.normal || c.image_uris.png || c.image_uris.border_crop)) ||
+              (c.card_faces && c.card_faces[0] && c.card_faces[0].image_uris &&
+                (c.card_faces[0].image_uris.large || c.card_faces[0].image_uris.normal || c.card_faces[0].image_uris.png || c.card_faces[0].image_uris.border_crop)) || '';
+  return {
+    id: c.id,
+    name: c.name,
+    typeLine: c.type_line || '',
+    text: c.oracle_text || (c.card_faces && c.card_faces.map(f => f.oracle_text || '').filter(Boolean).join('\n//\n')) || '',
+    imageUrl: img
+  };
+}
+
+async function fetchScryfallDeck(query) {
+  let url = 'https://api.scryfall.com/cards/search?q=' + encodeURIComponent(query) + '&unique=cards&order=name';
+  const cards = [];
+  while (url) {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok || data.object === 'error') throw new Error(data.details || 'Could not load cards');
+    cards.push(...(data.data || []).map(normalizeScryfallCard));
+    url = data.has_more ? data.next_page : null;
+  }
+  return shuffle(cards);
+}
+
+async function loadSpecialDeck(mode, render) {
+  const d = state.specialDecks[mode];
+  d.enabled = true;
+  d.loading = true;
+  d.error = '';
+  save();
+  updateSpecialDeckOverlay();
+  render();
+  try {
+    d.deck = await fetchScryfallDeck(SPECIAL_DECK_CONFIG[mode].query);
+    d.discard = [];
+    d.current = null;
+  } catch(e) {
+    d.error = e.message || 'Could not load deck';
+  } finally {
+    d.loading = false;
+    save();
+    updateSpecialDeckOverlay();
+    render();
+  }
+}
+
+function toggleSpecialDeck(mode, render) {
+  const d = state.specialDecks[mode];
+  d.enabled = !d.enabled;
+  save();
+  updateSpecialDeckOverlay();
+  render();
+}
+
+function revealSpecialDeck(mode, render) {
+  const d = state.specialDecks[mode];
+  d.enabled = true;
+  if (d.current) d.discard.push(d.current);
+  if (d.deck.length === 0 && d.discard.length > 0) {
+    d.deck = shuffle(d.discard);
+    d.discard = [];
+  }
+  if (d.deck.length > 0) d.current = d.deck.shift();
+  if (d.current) recordMatchEvent({ type: 'specialReveal', mode, cardName: d.current.name }, false);
+  save();
+  if (d.current) {
+    d.drawerOpen = true;
+    clearTimeout(specialDrawerTimers[mode]);
+    save();
+  }
+  updateSpecialDeckOverlay();
+  if (render) render();
+}
+
+function discardSpecialCurrent(mode, render) {
+  const d = state.specialDecks[mode];
+  if (d.current) d.discard.push(d.current);
+  d.current = null;
+  save();
+  updateSpecialDeckOverlay();
+  render();
+}
+
+function resetSpecialDeck(mode, render) {
+  const d = state.specialDecks[mode];
+  const all = [...d.deck, ...d.discard, ...(d.current ? [d.current] : [])];
+  d.deck = shuffle(all);
+  d.discard = [];
+  d.current = null;
+  d.error = '';
+  save();
+  updateSpecialDeckOverlay();
+  render();
+}
+
+function resetSpecialDeckForNewGame(mode) {
+  const d = state.specialDecks && state.specialDecks[mode];
+  if (!d) return;
+
+  const all = [
+    ...(Array.isArray(d.deck) ? d.deck : []),
+    ...(Array.isArray(d.discard) ? d.discard : []),
+    ...(d.current ? [d.current] : [])
+  ];
+
+  d.deck = shuffle(all);
+  d.discard = [];
+  d.current = null;
+  d.error = '';
+  d.drawerOpen = false;
+  // Keep d.enabled as-is: reset starts a fresh game with the same variants enabled.
+}
+
+function renderDeckCard(mode) {
+  const cfg = SPECIAL_DECK_CONFIG[mode];
+  const d = state.specialDecks[mode];
+  const loadedCount = d.deck.length + d.discard.length + (d.current ? 1 : 0);
+  const currentHtml = d.current ?
+    '<div class="deck-current">' +
+      (d.current.imageUrl ? '<img class="deck-img" src="' + escapeHtml(d.current.imageUrl) + '" alt="' + escapeHtml(d.current.name) + '">' : '<div class="deck-img" style="height:120px;"></div>') +
+      '<div class="deck-info">' +
+        '<div class="deck-title">' + escapeHtml(d.current.name) + '</div>' +
+        '<div class="deck-type">' + escapeHtml(d.current.typeLine) + '</div>' +
+        '<div class="deck-text">' + escapeHtml(d.current.text) + '</div>' +
+      '</div>' +
+    '</div>' :
+    '<p>' + (loadedCount ? 'Deck loaded. Reveal the first card.' : cfg.emptyText) + '</p>';
+
+  return '<div class="deck-card">' +
+    '<h3>' + cfg.label + '</h3>' +
+    '<div class="deck-meta">' + (d.enabled ? 'Enabled' : 'Disabled') + ' · Deck ' + d.deck.length + ' · Discard ' + d.discard.length + (d.loading ? ' · Loading…' : '') + '</div>' +
+    (d.error ? '<div class="cmd-art-error" style="text-align:center;">' + escapeHtml(d.error) + '</div>' : '') +
+    currentHtml +
+    '<div class="deck-actions">' +
+      '<button id="' + mode + '-toggle">' + (d.enabled ? 'Disable' : 'Enable') + '</button>' +
+      '<button id="' + mode + '-load" ' + (d.loading ? 'disabled' : '') + '>' + (loadedCount ? 'Reload' : 'Load') + '</button>' +
+      '<button id="' + mode + '-next" ' + (!loadedCount || d.loading ? 'disabled' : '') + '>' + (d.current ? cfg.nextText : cfg.revealText) + '</button>' +
+      '<button id="' + mode + '-discard" ' + (!d.current ? 'disabled' : '') + '>Discard</button>' +
+      '<button id="' + mode + '-reset" ' + (!loadedCount ? 'disabled' : '') + '>Reset</button>' +
+      '<button id="' + mode + '-clear">Clear</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function openDecksModal() {
+  const bd = createBackdrop();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  bd.appendChild(m);
+
+  function render() {
+    m.innerHTML =
+      '<h2>Shared Decks</h2>' +
+      '<p>Uses Scryfall: Planechase loads Planes + Phenomena; Archenemy loads Schemes.</p>' +
+      renderDeckCard('planechase') +
+      renderDeckCard('archenemy') +
+      '<div class="modal-btns"><button class="btn-cancel" id="decks-close">Close</button></div>';
+
+    ['planechase','archenemy'].forEach(mode => {
+      m.querySelector('#' + mode + '-toggle').addEventListener('click', () => toggleSpecialDeck(mode, render));
+      m.querySelector('#' + mode + '-load').addEventListener('click', () => loadSpecialDeck(mode, render));
+      m.querySelector('#' + mode + '-next').addEventListener('click', () => revealSpecialDeck(mode, render));
+      m.querySelector('#' + mode + '-discard').addEventListener('click', () => discardSpecialCurrent(mode, render));
+      m.querySelector('#' + mode + '-reset').addEventListener('click', () => resetSpecialDeck(mode, render));
+      m.querySelector('#' + mode + '-clear').addEventListener('click', () => {
+        state.specialDecks[mode] = { enabled: false, deck: [], discard: [], current: null, loading: false, error: '', drawerOpen: false };
+        save(); updateSpecialDeckOverlay(); render();
+      });
+    });
+    m.querySelector('#decks-close').addEventListener('click', closeModal);
+    m.querySelector('#decks-close').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
+  }
+  render();
+}
+
+
+const specialDrawerTimers = { planechase: null, archenemy: null };
+const specialDrawerTouched = { planechase: false, archenemy: false };
+
+function getVisibleSpecialCards() {
+  return ['planechase','archenemy']
+    .map(mode => ({ mode, cfg: SPECIAL_DECK_CONFIG[mode], deck: state.specialDecks[mode] }))
+    .filter(x => x.deck && x.deck.enabled && x.deck.current)
+    .map(x => ({
+      mode: x.mode,
+      label: x.cfg.label,
+      name: x.deck.current.name,
+      typeLine: x.deck.current.typeLine || '',
+      text: x.deck.current.text || '',
+      imageUrl: x.deck.current.imageUrl || '',
+      open: x.deck.drawerOpen !== false
+    }));
+}
+
+function setSpecialDrawerOpen(mode, open, userAction) {
+  const d = state.specialDecks[mode];
+  if (!d) return;
+  d.drawerOpen = !!open;
+  if (userAction) specialDrawerTouched[mode] = true;
+  save();
+  updateSpecialDeckOverlay();
+}
+
+function toggleSpecialDrawer(mode) {
+  const d = state.specialDecks[mode];
+  if (!d) return;
+  setSpecialDrawerOpen(mode, d.drawerOpen === false, true);
+}
+
+function keepSpecialOverlayReadable(mode, ms = 4200) {
+  // Kept for compatibility: revealed Planechase / Archenemy cards now stay open
+  // until the player hides them via the tab.
+  const d = state.specialDecks[mode];
+  if (!d) return;
+  clearTimeout(specialDrawerTimers[mode]);
+  d.drawerOpen = true;
+  save();
+  updateSpecialDeckOverlay();
+}
+
+function revealSpecialDeckFromOverlay(mode) {
+  specialDrawerTouched[mode] = false;
+  revealSpecialDeck(mode, null);
+}
+
+function showSpecialActions(mode) {
+  specialDrawerTouched[mode] = true;
+  const card = document.querySelector('.special-peek-card.' + mode);
+  if (!card) return;
+  card.classList.add('show-actions');
+  clearTimeout(card._actionsTimer);
+  card._actionsTimer = setTimeout(() => card.classList.remove('show-actions'), 2200);
+}
+
+function updateSpecialDeckOverlay() {
+  const overlay = document.getElementById('special-card-overlay');
+  if (!overlay || !state.specialDecks) return;
+  const cards = getVisibleSpecialCards();
+  if (!cards.length) {
+    overlay.className = '';
+    overlay.innerHTML = '';
+    return;
+  }
+  overlay.className = 'count-' + Math.min(cards.length, 2);
+  overlay.innerHTML = cards.map(card => {
+    const arrow = card.mode === 'planechase'
+      ? (card.open ? '▲' : '▼')
+      : (card.open ? '▼' : '▲');
+    const tabText = arrow + ' ' + (card.mode === 'planechase' ? 'Plane' : 'Scheme') + ' · ' + card.name;
+    const tabHtml = '<div class="special-drawer-tab" data-action="toggle" data-mode="' + escapeHtml(card.mode) + '">' + escapeHtml(tabText) + '</div>';
+    const cardHtml = '<div class="special-peek-card ' + escapeHtml(card.mode) + '">' +
+        '<div class="special-peek-image-frame" data-action="full" data-mode="' + escapeHtml(card.mode) + '">' +
+          (card.imageUrl
+            ? '<img src="' + escapeHtml(card.imageUrl) + '" alt="' + escapeHtml(card.name) + '" loading="eager">'
+            : '<div class="special-peek-fallback">' + escapeHtml(card.name) + '</div>') +
+        '</div>' +
+        '<div class="special-peek-label">' + escapeHtml(card.label + ' · ' + card.name) + '</div>' +
+        '<div class="special-peek-actions">' +
+          '<button class="special-action-btn" data-action="full" data-mode="' + escapeHtml(card.mode) + '">Full</button>' +
+          '<button class="special-action-btn" data-action="next" data-mode="' + escapeHtml(card.mode) + '">🂠 Next</button>' +
+        '</div>' +
+      '</div>';
+    return '<div class="special-drawer ' + escapeHtml(card.mode) + (card.open ? '' : ' collapsed') + '">' +
+      (card.mode === 'planechase' ? cardHtml + tabHtml : tabHtml + cardHtml) +
+    '</div>';
+  }).join('');
+}
+
+function openSpecialFullView(mode) {
+  const d = state.specialDecks[mode];
+  if (!d || !d.current) return;
+  specialDrawerTouched[mode] = true;
+  const cfg = SPECIAL_DECK_CONFIG[mode];
+  const c = d.current;
+  const bd = createBackdrop();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.style.width = 'min(96vw, 980px)';
+  m.innerHTML =
+    '<span class="modal-close-x" id="special-full-close">&times;</span>' +
+    '<h2>' + escapeHtml(cfg.label) + '</h2>' +
+    '<div class="special-full-card ' + escapeHtml(mode) + '">' +
+      '<div class="special-full-img-wrap">' +
+        (c.imageUrl ? '<img src="' + escapeHtml(c.imageUrl) + '" alt="' + escapeHtml(c.name) + '">' : '<div class="special-peek-fallback">' + escapeHtml(c.name) + '</div>') +
+      '</div>' +
+      '<div class="special-full-info">' +
+        '<h3>' + escapeHtml(c.name) + '</h3>' +
+        '<div class="special-full-type">' + escapeHtml(c.typeLine || '') + '</div>' +
+        '<div class="special-full-text">' + escapeHtml(c.text || '') + '</div>' +
+        '<div class="modal-btns" style="margin-top:18px">' +
+          '<button class="btn-confirm" id="special-full-next">🂠 Next</button>' +
+          '<button class="btn-cancel" id="special-full-dismiss">Close</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  bd.appendChild(m);
+  m.querySelector('#special-full-close').addEventListener('click', closeModal);
+  m.querySelector('#special-full-dismiss').addEventListener('click', closeModal);
+  m.querySelector('#special-full-next').addEventListener('click', () => {
+    closeModal();
+    revealSpecialDeckFromOverlay(mode);
+  });
+}
+
+document.getElementById('special-card-overlay').addEventListener('click', e => {
+  const target = e.target.closest('[data-action]');
+  if (!target) {
+    const card = e.target.closest('.special-peek-card');
+    if (card) showSpecialActions(card.classList.contains('planechase') ? 'planechase' : 'archenemy');
+    return;
+  }
+  e.stopPropagation();
+  const mode = target.dataset.mode;
+  const action = target.dataset.action;
+  if (action === 'toggle') toggleSpecialDrawer(mode);
+  if (action === 'full') openSpecialFullView(mode);
+  if (action === 'next') revealSpecialDeckFromOverlay(mode);
+});
+
+document.getElementById('special-card-overlay').addEventListener('touchstart', e => {
+  const card = e.target.closest('.special-peek-card');
+  if (card) showSpecialActions(card.classList.contains('planechase') ? 'planechase' : 'archenemy');
+}, { passive: true });
+
+setTimeout(updateSpecialDeckOverlay, 0);
+
 resetBtn.addEventListener('click', openResetModal);
 resetBtn.addEventListener('touchend', e => { e.preventDefault(); openResetModal(); });
 
 const historyBtn = document.getElementById('history-btn');
 historyBtn.addEventListener('click', openHistoryModal);
 historyBtn.addEventListener('touchend', e => { e.preventDefault(); openHistoryModal(); });
+
+const decksBtn = document.getElementById('decks-btn');
+decksBtn.addEventListener('click', openDecksModal);
+decksBtn.addEventListener('touchend', e => { e.preventDefault(); openDecksModal(); });
 
 function applyDisplayMode() {
   if (state.desktopMode) {
@@ -1739,6 +2632,7 @@ function undoLastAction() {
     });
   }
 
+  removeLastMatchEventsForHistory(h);
   state.history.shift(); // remove the undone entry
   save();
 }
@@ -1796,20 +2690,189 @@ function openHistoryModal() {
       '<p style="text-align:center;font-size:clamp(9px,2vw,11px);color:var(--text-dim);margin-bottom:8px;letter-spacing:0.06em;">(Most recent at the top)</p>' +
       rows +
       '<div class="modal-btns">' +
+      '<button class="btn-confirm" id="hist-summary">Summary</button>' +
       (hasHistory ? '<button class="btn-cancel" id="hist-undo" style="background:linear-gradient(135deg,#2a1a3a,#1a0a2a);color:#d0a0ff;border:1px solid rgba(160,80,255,0.35)!important;">&#x21A9; Undo</button>' : '') +
       '<button class="btn-cancel" id="hist-close">Close</button>' +
       '</div>';
 
+    const closeHistoryModal = () => { bd.remove(); if (currentModal === bd) currentModal = null; };
+    m.querySelector('#hist-summary').addEventListener('click', () => { closeHistoryModal(); openSummaryModal(); });
+    m.querySelector('#hist-summary').addEventListener('touchend', e => { e.preventDefault(); closeHistoryModal(); openSummaryModal(); });
     if (hasHistory) {
       m.querySelector('#hist-undo').addEventListener('click', () => { undoLastAction(); renderModal(); });
       m.querySelector('#hist-undo').addEventListener('touchend', e => { e.preventDefault(); undoLastAction(); renderModal(); });
     }
-    m.querySelector('#hist-close').addEventListener('click', closeModal);
-    m.querySelector('#hist-close').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
+    m.querySelector('#hist-close').addEventListener('click', closeHistoryModal);
+    m.querySelector('#hist-close').addEventListener('touchend', e => { e.preventDefault(); closeHistoryModal(); });
   }
 
   bd.appendChild(m);
   renderModal();
+}
+
+
+function formatDuration(ms) {
+  const mins = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h <= 0) return m + ' min';
+  return h + 'h ' + m.toString().padStart(2, '0') + 'm';
+}
+
+function computeGameSummary() {
+  ensureMatchStats();
+  const names = state.players.map(p => p.name);
+  const stats = state.players.map((p, i) => ({
+    idx: i,
+    name: p.name,
+    finalLife: p.life,
+    eliminated: isEliminated(i),
+    gained: 0,
+    lost: 0,
+    commanderDealt: 0,
+    commanderReceived: 0,
+    pingsMade: 0,
+    pingsReceived: 0
+  }));
+  let biggestGain = null;
+  let biggestLoss = null;
+  let biggestCmd = null;
+  let planes = 0;
+  let schemes = 0;
+
+  state.matchStats.events.forEach(ev => {
+    if (ev.type === 'life') {
+      const d = ev.delta || 0;
+      if (d > 0) {
+        stats[ev.player].gained += d;
+        if (!biggestGain || d > biggestGain.amount) biggestGain = { player: ev.player, amount: d };
+      } else if (d < 0) {
+        stats[ev.player].lost += Math.abs(d);
+        if (!biggestLoss || Math.abs(d) > biggestLoss.amount) biggestLoss = { player: ev.player, amount: Math.abs(d) };
+      }
+    } else if (ev.type === 'cmd') {
+      stats[ev.attacker].commanderDealt += ev.amount;
+      stats[ev.defender].commanderReceived += ev.amount;
+      stats[ev.defender].lost += ev.amount;
+      if (!biggestLoss || ev.amount > biggestLoss.amount) biggestLoss = { player: ev.defender, amount: ev.amount, source: 'commander damage' };
+      if (!biggestCmd || ev.amount > biggestCmd.amount) biggestCmd = { attacker: ev.attacker, defender: ev.defender, amount: ev.amount, cmdName: ev.cmdName };
+    } else if (ev.type === 'ping') {
+      const count = ev.count || 1;
+      stats[ev.attacker].pingsMade += count;
+      (ev.targets || []).forEach(i => {
+        stats[i].pingsReceived += count;
+        stats[i].lost += count;
+      });
+    } else if (ev.type === 'specialReveal') {
+      if (ev.mode === 'planechase') planes++;
+      if (ev.mode === 'archenemy') schemes++;
+    }
+  });
+
+  const alive = stats.filter(s => !s.eliminated);
+  const winner = alive.length === 1 ? alive[0].name : (alive.length > 1 ? alive.map(s => s.name).join(', ') : 'No one');
+  const topCmdDealer = stats.slice().sort((a,b) => b.commanderDealt - a.commanderDealt)[0];
+  const duration = formatDuration(Date.now() - state.matchStats.startedAt);
+  return { stats, winner, aliveCount: alive.length, duration, biggestGain, biggestLoss, biggestCmd, topCmdDealer, planes, schemes };
+}
+
+function chartColorForPlayer(idx) {
+  const palette = ['#8cff9a', '#d8a8ff', '#ffd27a', '#8ec6ff'];
+  return palette[idx % palette.length];
+}
+
+function renderLifeGraphLegend() {
+  return '<div class="life-chart-legend">' + state.players.map((p, idx) =>
+    '<div class="life-chart-legend-item">' +
+      '<span class="life-chart-swatch" style="background:' + chartColorForPlayer(idx) + '"></span>' +
+      '<span class="life-chart-legend-name">' + escHtml(p.name) + '</span>' +
+    '</div>'
+  ).join('') + '</div>';
+}
+
+function renderLifeGraphSvg() {
+  ensureMatchStats();
+  const series = state.matchStats.lifeSeries;
+  const w = 760, h = 330;
+  const pad = { l: 42, r: 118, t: 20, b: 34 };
+  const plotW = w - pad.l - pad.r;
+  const plotH = h - pad.t - pad.b;
+  const values = series.flatMap(s => s.life);
+  const minY = Math.min(0, ...values);
+  const maxY = Math.max(40, ...values);
+  const span = Math.max(1, maxY - minY);
+  const xFor = i => pad.l + (series.length === 1 ? 0 : (i / (series.length - 1)) * plotW);
+  const yFor = v => pad.t + ((maxY - v) / span) * plotH;
+  const gridVals = Array.from(new Set([maxY, Math.round((maxY + minY) / 2), minY])).sort((a,b)=>b-a);
+  const esc = escHtml;
+  let svg = '<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Life totals over the game">';
+  svg += '<rect x="0" y="0" width="'+w+'" height="'+h+'" rx="10" fill="rgba(0,0,0,0.20)"/>';
+  gridVals.forEach(v => {
+    const y = yFor(v);
+    svg += '<line x1="'+pad.l+'" y1="'+y.toFixed(1)+'" x2="'+(w-pad.r)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>';
+    svg += '<text x="10" y="'+(y+4).toFixed(1)+'" fill="rgba(255,255,255,0.62)" font-size="12" font-family="serif">'+v+'</text>';
+  });
+  svg += '<line x1="'+pad.l+'" y1="'+pad.t+'" x2="'+pad.l+'" y2="'+(h-pad.b)+'" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>';
+  svg += '<line x1="'+pad.l+'" y1="'+(h-pad.b)+'" x2="'+(w-pad.r)+'" y2="'+(h-pad.b)+'" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>';
+  svg += '<line x1="'+pad.l+'" y1="'+yFor(0).toFixed(1)+'" x2="'+(w-pad.r)+'" y2="'+yFor(0).toFixed(1)+'" stroke="rgba(255,110,110,0.40)" stroke-width="1.5" stroke-dasharray="5 5"/>';
+
+  state.players.forEach((p, idx) => {
+    const pts = series.map((s,i) => xFor(i).toFixed(1)+','+yFor(s.life[idx]).toFixed(1)).join(' ');
+    const color = chartColorForPlayer(idx);
+    svg += '<polyline points="'+pts+'" fill="none" stroke="rgba(0,0,0,0.78)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>';
+    svg += '<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.98"/>';
+    const last = series[series.length-1];
+    const lx = xFor(series.length - 1), ly = yFor(last.life[idx]);
+    svg += '<circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="5.5" fill="'+color+'" stroke="rgba(255,255,255,0.92)" stroke-width="1.2"/>';
+    const labelX = w - pad.r + 10;
+    const labelY = Math.max(18, Math.min(h - 16, ly));
+    svg += '<line x1="'+(lx+5).toFixed(1)+'" y1="'+ly.toFixed(1)+'" x2="'+(labelX-6)+'" y2="'+labelY.toFixed(1)+'" stroke="'+color+'" stroke-width="1.5" opacity="0.65"/>';
+    svg += '<text x="'+labelX+'" y="'+(labelY+4).toFixed(1)+'" fill="'+color+'" font-size="12" font-family="serif" font-weight="700">'+esc(p.name)+' '+last.life[idx]+'</text>';
+  });
+  svg += '<text x="'+(pad.l + plotW/2)+'" y="'+(h-9)+'" fill="rgba(255,255,255,0.52)" font-size="11" text-anchor="middle" font-family="serif">Life changes over this game</text>';
+  svg += '</svg>';
+  return svg;
+}
+
+function openSummaryModal() {
+  const bd = createBackdrop();
+  const m = document.createElement('div');
+  m.className = 'modal summary-modal';
+  bd.appendChild(m);
+  const sum = computeGameSummary();
+  const statRows = sum.stats.map(s =>
+    '<tr><td><b>' + escHtml(s.name) + '</b>' + (s.eliminated ? ' <span style="color:#ff8080">☠</span>' : '') + '</td>' +
+    '<td>' + s.finalLife + '</td>' +
+    '<td class="hist-delta-pos">+' + s.gained + '</td>' +
+    '<td class="hist-delta-neg">−' + s.lost + '</td>' +
+    '<td>' + s.commanderDealt + '</td>' +
+    '<td>' + s.commanderReceived + '</td></tr>'
+  ).join('');
+  const highlights = [];
+  if (sum.biggestGain) highlights.push('♥ Biggest gain: <b>' + escHtml(state.players[sum.biggestGain.player].name) + '</b> +' + sum.biggestGain.amount);
+  if (sum.biggestLoss) highlights.push('💥 Biggest loss: <b>' + escHtml(state.players[sum.biggestLoss.player].name) + '</b> −' + sum.biggestLoss.amount + (sum.biggestLoss.source ? ' (' + sum.biggestLoss.source + ')' : ''));
+  if (sum.biggestCmd) highlights.push('⚔ Largest commander hit: <b>' + escHtml(state.players[sum.biggestCmd.attacker].name) + '</b> → <b>' + escHtml(state.players[sum.biggestCmd.defender].name) + '</b> −' + sum.biggestCmd.amount);
+  if (sum.topCmdDealer && sum.topCmdDealer.commanderDealt > 0) highlights.push('🏆 Most commander damage dealt: <b>' + escHtml(sum.topCmdDealer.name) + '</b> (' + sum.topCmdDealer.commanderDealt + ')');
+  if (sum.planes > 0) highlights.push('🌍 Planes / phenomena revealed: <b>' + sum.planes + '</b>');
+  if (sum.schemes > 0) highlights.push('☠ Schemes revealed: <b>' + sum.schemes + '</b>');
+  if (highlights.length === 0) highlights.push('No major events recorded yet.');
+
+  m.innerHTML =
+    '<h2>Game Summary</h2>' +
+    '<div class="summary-hero">' +
+      '<div class="summary-card"><span class="label">Winner / alive</span><span class="value">' + escHtml(sum.winner) + '</span></div>' +
+      '<div class="summary-card"><span class="label">Duration</span><span class="value">' + sum.duration + '</span></div>' +
+      '<div class="summary-card"><span class="label">Events tracked</span><span class="value">' + state.matchStats.events.length + '</span></div>' +
+    '</div>' +
+    '<div class="life-chart-wrap">' + renderLifeGraphSvg() + renderLifeGraphLegend() + '</div>' +
+    '<div class="summary-section-title">Highlights</div>' +
+    '<ul class="summary-highlight-list"><li>' + highlights.join('</li><li>') + '</li></ul>' +
+    '<div class="summary-section-title">Player stats</div>' +
+    '<table class="summary-table"><thead><tr><th>Player</th><th>Life</th><th>Gained</th><th>Lost</th><th>Cmd dealt</th><th>Cmd received</th></tr></thead><tbody>' + statRows + '</tbody></table>' +
+    '<p style="margin-top:10px;color:var(--text-dim);font-size:clamp(9px,2vw,11px);text-align:center;">Manual life changes are tracked as life gain/loss, but the app cannot know their source unless they were commander damage or ping.</p>' +
+    '<div class="modal-btns"><button class="btn-cancel" id="summary-close">Close</button></div>';
+  m.querySelector('#summary-close').addEventListener('click', closeModal);
+  m.querySelector('#summary-close').addEventListener('touchend', e => { e.preventDefault(); closeModal(); });
 }
 
 function openResetModal() {
@@ -1820,6 +2883,7 @@ function openResetModal() {
     '<h2>Reset Game?</h2>' +
     '<p>Life totals return to 40.</p>' +
     '<p>Commander damage is cleared.</p>' +
+    '<p>Planechase and Archenemy decks are reset, while enabled modes stay enabled.</p>' +
     '<p>Names &amp; colours are kept.</p>' +
     '<div class="modal-btns" style="margin-top:18px">' +
     '<button class="btn-cancel" id="res-cancel">Cancel</button>' +
@@ -1842,7 +2906,11 @@ function doReset() {
     p.artUrl2 = '';
   });
   state.history = [];
+  state.matchStats = createNewMatchStats();
+  resetSpecialDeckForNewGame('planechase');
+  resetSpecialDeckForNewGame('archenemy');
   save(); buildUI();
+  updateSpecialDeckOverlay();
 }
 
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -1917,6 +2985,7 @@ if ('serviceWorker' in navigator) {
 });
 
 buildUI();
+updateSpecialDeckOverlay();
 </script>
 </body>
 </html>
